@@ -10,19 +10,8 @@ import hashlib
 CHUNK_SIZE = 24
 
 class Opacify(object):
-    def __init__(self):
-        self.mode       = None
-        self.input_path = None
-        self.src_path   = None
-        self.threads    = None
-        self.save_path  = None
-        self.manifest   = None
-
-
     def _cmp_buf_chunk(self, buf, chunk):
         offset = chunk.find(buf)
-        #if offset > 0:
-        #    print("%s" % (chunk[offset:offset+len(buf)])),
         return offset
 
     def _find_buf(self, buf, urls):
@@ -32,27 +21,26 @@ class Opacify(object):
                 h = hashlib.sha224(url.encode()).hexdigest()
                 cache_path = 'cache/%s.tmp' % (h)
                 if not os.path.exists(cache_path):
-                    #print('DEBUG: url=%s' % (url))
                     r = requests.get(url, stream=True)
                     if r.status_code != 200: continue
                     with open(cache_path, 'wb') as cache_f:
                         for chunk in r:
                             cache_f.write(chunk)
-                #else:
-                #    print('DEBUG: cache=%s' % (cache_path))
 
                 cache_f = open(cache_path, 'rb')
+                total_chunk_size = 0
                 while True:
                     chunk = cache_f.read(CHUNK_SIZE*1024)
                     if not chunk:
                         break
                     t = self._cmp_buf_chunk(buf, chunk)
                     if t != -1 and t != 0:
-                        #if len(buf) % 2 != 0 and len(buf) != 1:
-                        #    raise Exception('odd buffer?: %d' % (len(buf)))
-                        return (len(buf), t, url)
+                        if len(buf) % 2 != 0 and len(buf) != 1:
+                            raise Exception('odd buffer?: %d' % (len(buf)))
+                        return (len(buf), total_chunk_size+t, url)
+                    total_chunk_size += len(chunk)
             lb = len(buf)
-            """if lb > 8:
+            if lb > 8:
                 buf = buf[:-8]
             elif lb > 4:
                 buf = buf[:-4]
@@ -60,11 +48,8 @@ class Opacify(object):
                 buf = buf[:-2]
             else:
                 buf = buf[:-1]
-            """
-            if lb > 1:
-                buf = buf[:-1]
 
-            #buf = buf[:int(len(buf)/2)]
+            #buf = buf[:int(lb/2)]
             if len(buf) < 1:
                 raise Exception('E: No urls fulfilled buffer data')
                 
@@ -81,11 +66,9 @@ class Opacify(object):
             buf = inf_f.read(CHUNK_SIZE)
             if not buf:
                 break
-            #print(buf) 
             start_buf_len = len(buf)
             prev_buf_len = len(buf)
             while prev_buf_len > 0:
-                print(len(buf))
                 fbu = self._find_buf(buf, urls)
                 if fbu is None:
                     raise Exception('Could not find url for buf at offset: %d' % (offset))
@@ -93,12 +76,6 @@ class Opacify(object):
                 if buf_len == 0:
                     raise Exception('buf_len == 0')
                 print('DEBUG: buf_len=%d url_offset=%d foff=%d url=%s' % (buf_len, url_offset, offset, url))
-                """output = url
-                output += ' '
-                output += str(url_offset)
-                output += ' '
-                output += str(buf_len)
-                """
                 man_f.write('%s %s %s\n' % (url, url_offset, buf_len))
                 buf = buf[buf_len:]
                 prev_buf_len = len(buf)
@@ -122,24 +99,22 @@ class Opacify(object):
                     r = requests.get(url, stream=True)
                     if r.status_code != 200:
                         raise Exception('Failed to open url: %s\nFile is incomplete' % (url))
-                    for chunk in r:
-                        buf += chunk
-                        if len(buf) > buf_len + url_offset:
-                            break
-                    buf = buf[url_offset:url_offset+buf_len]
-                    out_f.write(buf)
-                else:
-                    cache_f = open(cache_path, 'rb')
-                    while True:
-                        tmp = cache_f.read(CHUNK_SIZE*1000)
-                        if not tmp:
-                            break
-                        buf += tmp
-                        if len(buf) > buf_len + url_offset:
-                            break
-                    buf = buf[url_offset:url_offset+buf_len]
-                    out_f.write(buf)
-                    cache_f.close()
+                    with open(cache_path, 'wb') as cache_f:
+                        for chunk in r:
+                            buf += chunk
+                            cache_f.write(chunk)
+                buf = b''
+                cache_f = open(cache_path, 'rb')
+                while True:
+                    tmp = cache_f.read(CHUNK_SIZE*1000)
+                    if not tmp:
+                        break
+                    buf += tmp
+                    if len(buf) > buf_len + url_offset:
+                        break
+                cache_f.close()
+                buf = buf[url_offset:url_offset+buf_len]
+                out_f.write(buf)
             out_f.close()                 
     
 o = Opacify()
