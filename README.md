@@ -24,8 +24,7 @@ exists (has a valid HTTP response) and check that the source provides enough dat
 ```bash
 $ opacify --verify-external-sources --manifest test.opacify
 Validating external sources listed in manifest ...
-Status: 54% ... ERROR:
-    Not enough external sources to complete manifest!
+Status: 100% ... Complete!
 ```
 
 ## Errors
@@ -48,6 +47,18 @@ Status: 23% ... ERROR:
          test-depacify.txt
 ```
 
+Fail to depacify (external sources changed), but continue on:
+```bash
+$ opacify --depacify --manifest test.opacify -save test-depacify.txt --continue
+Running depacify on test.opacify ...
+Status: 23% ...
+ERROR: External source http://foo/bar.jpg failed at offset 32, 40 bytes.
+ERROR: External source http://foo/bar.jpg failed at offset 44, 20 bytes..
+    We tried our best but not all external sources were good.
+    Partial contents are located at:
+         test-depacify.txt
+```
+
 Fail to validate sha256 or length on depacify:
 ```bash
 $ opacify --depacify --manifest test.opacify -save test-depacify.txt
@@ -66,6 +77,15 @@ Status: 12% ... ERROR:
     OR a problem with your system!
     Output file was still saved to:
          test-depacify.txt
+```
+
+Fail to validate manifest:
+```bash
+$ opacify --verify-external-sources --manifest test.opacify
+Validating external sources listed in manifest ...
+Status: 55% ... ERROR:
+    Source http://foo.bar.jpg returned an invalid response!
+    You cannot fully rebuild from the manifest!
 ```
 
 # Manifest Format
