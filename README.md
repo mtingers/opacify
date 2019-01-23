@@ -13,7 +13,7 @@ Status: 100% ... Complete!
 
 ## Depacify A File
 ```
-$ opacify -d --manifest test.opacify -save test-depacify.txt
+$ opacify -d --manifest test.opacify --save test-depacify.txt
 Running depacify on test.opacify ...
 Status: 100% ... Complete!
 ```
@@ -28,12 +28,14 @@ Status: 100% ... Complete!
 ```
 
 ## Errors
+See [Error Codes](/ERRORS.md) for a list of errors and meanings.
+
 Fail to pacify:
 ```
 $ opacify --pacify --input-file test.txt --external-sources sources.txt --manifest test.opacify
 Running pacify on test.txt using sources.txt ...
 Status: 54% ... ERROR:
-    Not enough external sources to complete manifest!
+    E1: Not enough external sources to complete manifest!
 ```
 
 Fail to depacify (external sources changed):
@@ -41,7 +43,7 @@ Fail to depacify (external sources changed):
 $ opacify --depacify --manifest test.opacify -save test-depacify.txt
 Running depacify on test.opacify ...
 Status: 23% ... ERROR:
-    Failed to extract source:
+    E2: Failed to extract source:
         http://foo/bar.jpg
     Partial contents are located at:
          test-depacify.txt
@@ -53,8 +55,8 @@ $ opacify --depacify --manifest test.opacify -save test-depacify.txt --continue
 Running depacify on test.opacify ...
 Status: 23% ...
 ERROR: External source http://foo/bar.jpg failed at offset 32, 40 bytes.
-ERROR: External source http://foo/bar.jpg failed at offset 44, 20 bytes..
-    We tried our best but not all external sources were good.
+ERROR: External source http://foo/bar.jpg failed at offset 44, 20 bytes.
+    E3: We tried our best but not all external sources were good.
     Partial contents are located at:
          test-depacify.txt
 ```
@@ -64,7 +66,7 @@ Fail to validate sha256 or length on depacify:
 $ opacify --depacify --manifest test.opacify -save test-depacify.txt
 Running depacify on test.opacify ...
 Status: 44% ...ERROR:
-    SHA256 does not match manifest! The data is likely invalid!
+    E4: SHA256 does not match manifest! The data is likely invalid!
     Output file was still saved to:
          test-depacify.txt
 ```
@@ -72,9 +74,9 @@ Status: 44% ...ERROR:
 $ opacify --depacify --manifest test.opacify -save test-depacify.txt
 Running depacify on test.opacify ...
 Status: 12% ... ERROR:
-    Length does not match manifest! The data is likely invalid!
-    This should not happen, there may be a bug in Opacify
-    OR a problem with your system!
+    E5: Length does not match manifest! The data is likely invalid!
+        This should not happen, there may be a bug in Opacify
+        OR a problem with your system!
     Output file was still saved to:
          test-depacify.txt
 ```
@@ -84,8 +86,8 @@ Fail to validate manifest:
 $ opacify --verify-external-sources --manifest test.opacify
 Validating external sources listed in manifest ...
 Status: 55% ... ERROR:
-    Source http://foo.bar.jpg returned an invalid response!
-    You cannot fully rebuild from the manifest!
+    E6: Source http://foo.bar.jpg returned an invalid response!
+        You cannot fully rebuild from the manifest!
 ```
 
 # Manifest Format
