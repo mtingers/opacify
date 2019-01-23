@@ -5,14 +5,14 @@ Opacify reads a file and builds a manifest of external sources to rebuild said f
 # Examples
 
 ## Opacify A File
-```bash
+```
 $ opacify -o --input-file test.txt --external-sources sources.txt --manifest test.opacify
 Running pacify on test.txt using sources.txt ...
 Status: 100% ... Complete!
 ```
 
 ## Depacify A File
-```bash
+```
 $ opacify -d --manifest test.opacify -save test-depacify.txt
 Running depacify on test.opacify ...
 Status: 100% ... Complete!
@@ -21,7 +21,7 @@ Status: 100% ... Complete!
 ## Validate Manifest
 As time goes by, external sources may disappear or content may change. The following will check that the source
 exists (has a valid HTTP response) and check that the source provides enough data of offset+length:
-```bash
+```
 $ opacify --verify-external-sources --manifest test.opacify
 Validating external sources listed in manifest ...
 Status: 100% ... Complete!
@@ -29,7 +29,7 @@ Status: 100% ... Complete!
 
 ## Errors
 Fail to pacify:
-```bash
+```
 $ opacify --pacify --input-file test.txt --external-sources sources.txt --manifest test.opacify
 Running pacify on test.txt using sources.txt ...
 Status: 54% ... ERROR:
@@ -37,7 +37,7 @@ Status: 54% ... ERROR:
 ```
 
 Fail to depacify (external sources changed):
-```bash
+```
 $ opacify --depacify --manifest test.opacify -save test-depacify.txt
 Running depacify on test.opacify ...
 Status: 23% ... ERROR:
@@ -48,7 +48,7 @@ Status: 23% ... ERROR:
 ```
 
 Fail to depacify (external sources changed), but continue on:
-```bash
+```
 $ opacify --depacify --manifest test.opacify -save test-depacify.txt --continue
 Running depacify on test.opacify ...
 Status: 23% ...
@@ -60,7 +60,7 @@ ERROR: External source http://foo/bar.jpg failed at offset 44, 20 bytes..
 ```
 
 Fail to validate sha256 or length on depacify:
-```bash
+```
 $ opacify --depacify --manifest test.opacify -save test-depacify.txt
 Running depacify on test.opacify ...
 Status: 44% ...ERROR:
@@ -68,7 +68,7 @@ Status: 44% ...ERROR:
     Output file was still saved to:
          test-depacify.txt
 ```
-```bash
+```
 $ opacify --depacify --manifest test.opacify -save test-depacify.txt
 Running depacify on test.opacify ...
 Status: 12% ... ERROR:
@@ -80,7 +80,7 @@ Status: 12% ... ERROR:
 ```
 
 Fail to validate manifest:
-```bash
+```
 $ opacify --verify-external-sources --manifest test.opacify
 Validating external sources listed in manifest ...
 Status: 55% ... ERROR:
@@ -130,7 +130,7 @@ Instead of having to compile a list of sources to build from, provide a way to a
 from common locations (e.g. imgur, giphy, reddit, etc). Depending on the input file size, this could
 take an extremely long time.
 
-```bash
+```
 $ opacify -o --input-file test.txt --external-sources-auto --manifest test.opacify --verbose
 Running pacify on test.txt and finding external sources ...
 Status: Found source http://foo.com/hello.txt for offset 0, using 32 bytes
