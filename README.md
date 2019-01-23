@@ -126,6 +126,14 @@ This example describes the following process to rebuild the input file from the 
 
 # TODO
 
+## Implementation
+
+You know, implement the code.
+
+## Threading
+
+Make a --threads option to speed up operations when interacting with external sources.
+
 ## Auto External Sources
 
 Instead of having to compile a list of sources to build from, provide a way to auto-build this source
