@@ -8,14 +8,24 @@ Opacify reads a file and builds a manifest of external sources to rebuild said f
 ```bash
 $ opacify -o --input-file test.txt --external-sources sources.txt --manifest test.opacify
 Running pacify on test.txt using sources.txt ...
-Status: 54% ... Complete!
+Status: 100% ... Complete!
 ```
 
 ## Depacify A File
 ```bash
 $ opacify -d --manifest test.opacify -save test-depacify.txt
 Running depacify on test.opacify ...
-Status: 23% ... Complete!
+Status: 100% ... Complete!
+```
+
+## Validate Manifest
+As time goes by, external sources may disappear or content may change. The following will check that the source
+exists (has a valid HTTP response) and check that the source provides enough data of offset+length:
+```bash
+$ opacify --verify-external-sources --manifest test.opacify
+Validating external sources listed in manifest ...
+Status: 54% ... ERROR:
+    Not enough external sources to complete manifest!
 ```
 
 ## Errors
@@ -38,9 +48,37 @@ Status: 23% ... ERROR:
          test-depacify.txt
 ```
 
+Fail to validate sha256 or length on depacify:
+```bash
+$ opacify --depacify --manifest test.opacify -save test-depacify.txt
+Running depacify on test.opacify ...
+Status: 44% ...ERROR:
+    SHA256 does not match manifest! The data is likely invalid!
+    Output file was still saved to:
+         test-depacify.txt
+```
+```bash
+$ opacify --depacify --manifest test.opacify -save test-depacify.txt
+Running depacify on test.opacify ...
+Status: 12% ... ERROR:
+    Length does not match manifest! The data is likely invalid!
+    This should not happen, there may be a bug in Opacify
+    OR a problem with your system!
+    Output file was still saved to:
+         test-depacify.txt
+```
+
 # Manifest Format
 
 The manifest consists of a header and body.
+
+## Header
+The header is one line with a ':' delimiter.  It contains the following in order as of this writing:
+    version:source-file-sha256:source-file-length
+
+* version: The version of Opacify that the manifest was built with.
+* source-file-sha256: The sha256 of the input file. This is used to validate on depacify.
+* source-file-length: The length of the input file. This is also used to validate on depacify.
 
 ## Body
 
@@ -63,14 +101,6 @@ This example describes the following process to rebuild the input file from the 
 3. Read 32 bytes from http://bar/foo.png starting at an offset of 100 bytes.
 4. Append this data to the output file.
 
-
-## Header
-The header is one line with a ':' delimiter.  It contains the following in order as of this writing:
-    version:source-file-sha256:source-file-length
-
-* version: The version of Opacify that the manifest was built with.
-* source-file-sha256: The sha256 of the input file. This is used to validate on depacify.
-* source-file-length: The length of the input file. This is also used to validate on depacify.
 
 # TODO
 
