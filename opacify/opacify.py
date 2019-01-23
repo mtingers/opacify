@@ -17,7 +17,7 @@ class StatusCodes(Enum):
     E_CACHE_OPEN        = 3
     E_URL_OPEN          = 4
     E_BUFFER_SIZE       = 5
-    E_FIND_BUFFER       = 6 
+    E_FIND_BUFFER       = 6
     E_MANIFEST_EXISTS   = 7
     E_OPEN_URL_FILE     = 8
     E_OPEN_MANIFEST     = 9
@@ -74,7 +74,7 @@ class Opacify(object):
                     continue
                 elif test == StatusCodes.E_CACHE_OPEN:
                     return test
-                
+
                 cache_path = self._cache_path(url)
                 cache_f = open(cache_path, 'rb')
                 total_chunk_size = 0
@@ -113,7 +113,7 @@ class Opacify(object):
                 msg='Manifest file exists. Use overwrite=True to overwrite')
 
         inf_f = open(input_file, 'rb')
-        man_f = open(manifest, 'w') 
+        man_f = open(manifest, 'w')
         urls = open(url_file).read().strip().split('\n')
         offset = 0
         while True:
@@ -126,7 +126,7 @@ class Opacify(object):
             while prev_buf_len > 0:
                 fbu = self._find_buf(buf, urls)
                 if fbu is StatusCodes.E_NONE:
-                    raise self.status(StatusCodes.E_NO_URL_FOUND, 
+                    raise self.status(StatusCodes.E_NO_URL_FOUND,
                         msg='Could not find url for buf at offset: %d' % (offset))
                 (buf_len, url_offset, url) = fbu
                 assert buf_len != 0, 'buffer length is 0'
@@ -213,7 +213,7 @@ class Opacify(object):
                 (url, url_offset, buf_len) = line.strip().split(' ')
                 url_offset = int(url_offset)
                 buf_len = int(buf_len)
-                self.print_debug('url=%s offset=%d len=%d' % (url, url_offset, buf_len)) 
+                self.print_debug('url=%s offset=%d len=%d' % (url, url_offset, buf_len))
                 buf = b''
                 cache_path = self._cache_path(url)
                 self.print_debug(cache_path)
@@ -238,11 +238,11 @@ class Opacify(object):
                 cache_f.close()
                 buf = buf[url_offset:url_offset+buf_len]
                 out_f.write(buf)
-            out_f.close()                 
+            out_f.close()
         if keep_cache is False:
             self.clean_cache()
         self.validate_output(out_file, sha, length)
-        
+
 o = Opacify(cache_dir='cache', debug=True)
 
 o.pacify(input_file=sys.argv[1], url_file=sys.argv[2], manifest=sys.argv[3], overwrite=True, keep_cache=True)
