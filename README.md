@@ -4,7 +4,7 @@ Opacify reads a file and builds a manifest of external sources to rebuild said f
 
 # Usage
 ```
-usage: opacify.py [-h] [-V] {pacify,depacify,verify} ...
+usage: opacify [-h] [-V] {pacify,depacify,verify} ...
 
 Opacify : v0.1.2
 Project : http://github.com/mtingers/opacify
@@ -28,7 +28,7 @@ Examples:
 ```
 
 ```
-usage: opacify.py pacify [-h] -i INPUT -u URLS -m MANIFEST -c CACHE [-k] [-f]
+usage: opacify pacify [-h] -i INPUT -u URLS -m MANIFEST -c CACHE [-k] [-f]
                          [-d]
 
 Run in pacify mode (builds manifest from input file)
@@ -49,7 +49,7 @@ optional arguments:
 ```
 
 ```
-usage: opacify.py depacify [-h] -m MANIFEST -o OUT -c CACHE [-k] [-f] [-d]
+usage: opacify depacify [-h] -m MANIFEST -o OUT -c CACHE [-k] [-f] [-d]
 
 Run in depacify mode (rebuilds file using manifest)
 
@@ -67,7 +67,7 @@ optional arguments:
 ```
 
 ```
-usage: opacify.py verify [-h] -m MANIFEST [-d]
+usage: opacify verify [-h] -m MANIFEST [-d]
 
 Validate manifest URLs and response length
 
