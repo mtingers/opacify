@@ -1,5 +1,8 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 import sys
+
+prev_tail = '|'
+tail = '|'
 
 # Modified version of comment here:
 #   https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
@@ -15,12 +18,31 @@ def progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100,
         length      - Optional  : character length of bar (Int)
         fill        - Optional  : bar fill character (Str)
     """
+    global tail, prev_tail
+    if tail == '.':
+        tail = '*'
+    else:
+        tail = '.'
+    """if prev_tail == '|':
+        prev_tail = tail
+        tail = '/'
+    elif prev_tail == '/':
+        prev_tail = tail
+        tail = '-'
+    elif prev_tail == '-':
+        prev_tail = tail
+        tail = '\\'
+    elif prev_tail == '\\':
+        prev_tail = tail
+        tail = '|'
+    """
+
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filled_length = int(length * iteration // total)
     bar = fill * filled_length + '-' * (length - filled_length)
-    sys.stdout.write('\r%s |%s| %s%% %s\r' % (prefix, bar, percent, suffix)) #, end = '\r')
+    sys.stdout.write('\r%s |%s| %s %s%% %s\r' % (prefix, bar, tail, percent, suffix)) #, end = '\r')
     sys.stdout.flush()
-    #if iteration == total: 
+    #if iteration == total:
     #    print('')
 
 

@@ -4,7 +4,7 @@ Opacify reads a file and builds a manifest of external sources to rebuild said f
 
 # Usage
 ```
-usage: opacify [-h] [-V] {pacify,depacify,verify,reddit} ...
+usage: opacify [-h] [-V] {pacify,satisfy,verify,reddit} ...
 
 Opacify : v0.1.4
 Project : http://github.com/mtingers/opacify
@@ -12,9 +12,9 @@ Author  : Matth Ingersoll <matth@mtingers.com>
 Commit  : 8b1985f41c78e137f41ffc57c14bd71d915ea91f
 
 positional arguments:
-  {pacify,depacify,verify,reddit}
+  {pacify,satisfy,verify,reddit}
     pacify              Run in pacify mode (builds manifest from input file)
-    depacify            Run in depacify mode (extracts file using manifest)
+    satisfy            Run in satisfy mode (extracts file using manifest)
     verify              Validate manifest URLs and response length
     reddit              Auto-generate a urls file from reddit links
 
@@ -24,7 +24,7 @@ optional arguments:
 
 Examples:
     $ opacify pacify --input test.txt --urls urls.txt --manifest test.opm --cache /tmp/cache/
-    $ opacify depacify --output test.txt.out --urls urls.txt --manifest test.opm --cache /tmp/dcache/
+    $ opacify satisfy --output test.txt.out --urls urls.txt --manifest test.opm --cache /tmp/dcache/
 ```
 
 ```
@@ -49,9 +49,9 @@ optional arguments:
 ```
 
 ```
-usage: opacify depacify [-h] -m MANIFEST -o OUT -c CACHE [-k] [-f] [-d]
+usage: opacify satisfy [-h] -m MANIFEST -o OUT -c CACHE [-k] [-f] [-d]
 
-Run in depacify mode (rebuilds file using manifest)
+Run in satisfy mode (rebuilds file using manifest)
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -102,10 +102,10 @@ Running pacify on test.txt using sources.txt ...
 Status: 100% ... Complete!
 ```
 
-## Depacify A File
+## Satisfy A File
 ```
-$ opacify depacify --manifest test.opacify --out test-depacify.txt
-Running depacify on test.opacify ...
+$ opacify satisfy --manifest test.opacify --out test-satisfy.txt
+Running satisfy on test.opacify ...
 Status: 100% ... Complete!
 ```
 
@@ -129,47 +129,47 @@ Status: 54% ... ERROR:
     E1: Not enough external sources to complete manifest!
 ```
 
-Fail to depacify (external sources changed):
+Fail to satisfy (external sources changed):
 ```
-$ opacify depacify --manifest test.opacify --out test-depacify.txt
-Running depacify on test.opacify ...
+$ opacify satisfy --manifest test.opacify --out test-satisfy.txt
+Running satisfy on test.opacify ...
 Status: 23% ... ERROR:
     E2: Failed to extract source:
         http://foo/bar.jpg
     Partial contents are located at:
-         test-depacify.txt
+         test-satisfy.txt
 ```
 
-Fail to depacify (external sources changed), but continue on:
+Fail to satisfy (external sources changed), but continue on:
 ```
-$ opacify depacify --manifest test.opacify --out test-depacify.txt --continue
-Running depacify on test.opacify ...
+$ opacify satisfy --manifest test.opacify --out test-satisfy.txt --continue
+Running satisfy on test.opacify ...
 Status: 23% ...
 ERROR: External source http://foo/bar.jpg failed at offset 32, 40 bytes.
 ERROR: External source http://foo/bar.jpg failed at offset 44, 20 bytes.
     E3: We tried our best but not all external sources were good.
     Partial contents are located at:
-         test-depacify.txt
+         test-satisfy.txt
 ```
 
-Fail to validate sha256 or length on depacify:
+Fail to validate sha256 or length on satisfy:
 ```
-$ opacify depacify --manifest test.opacify --out test-depacify.txt
-Running depacify on test.opacify ...
+$ opacify satisfy --manifest test.opacify --out test-satisfy.txt
+Running satisfy on test.opacify ...
 Status: 44% ...ERROR:
     E4: SHA256 does not match manifest! The data is likely invalid!
     Output file was still saved to:
-         test-depacify.txt
+         test-satisfy.txt
 ```
 ```
-$ opacify depacify --manifest test.opacify --out test-depacify.txt
-Running depacify on test.opacify ...
+$ opacify satisfy --manifest test.opacify --out test-satisfy.txt
+Running satisfy on test.opacify ...
 Status: 12% ... ERROR:
     E5: Length does not match manifest! The data is likely invalid!
         This should not happen, there may be a bug in Opacify
         OR a problem with your system!
     Output file was still saved to:
-         test-depacify.txt
+         test-satisfy.txt
 ```
 
 Fail to validate manifest:
@@ -190,8 +190,8 @@ The header is one line with a ':' delimiter.  It contains the following in order
     version:source-file-sha256:source-file-length
 
 * version: The version of Opacify that the manifest was built with.
-* source-file-sha256: The sha256 of the input file. This is used to validate on depacify.
-* source-file-length: The length of the input file. This is also used to validate on depacify.
+* source-file-sha256: The sha256 of the input file. This is used to validate on satisfy.
+* source-file-length: The length of the input file. This is also used to validate on satisfy.
 
 ## Body
 

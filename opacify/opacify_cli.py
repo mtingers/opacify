@@ -21,8 +21,8 @@ def main():
         subparser.required = True
     group1 = subparser.add_parser('pacify', description='Run in pacify mode (builds manifest from input file)',
          help='Run in pacify mode (builds manifest from input file)')
-    group2 = subparser.add_parser('depacify', description='Run in depacify mode (rebuilds file using manifest)',
-        help='Run in depacify mode (extracts file using manifest)')
+    group2 = subparser.add_parser('satisfy', description='Run in satisfy mode (rebuilds file using manifest)',
+        help='Run in satisfy mode (extracts file using manifest)')
     group3 = subparser.add_parser('verify', description='Validate manifest URLs and response length',
         help='Validate manifest URLs and response length')
     group4 = subparser.add_parser('reddit', description='Auto-generate a urls file from reddit links',
@@ -38,7 +38,7 @@ def main():
         help='Do not remove cache after completed. Useful for testing')
     group1.add_argument('-f', '--force', action='store_const', const=True, help='Overwrite manifest if it exists')
     group1.add_argument('-d', '--debug', action='store_const', const=True, help='Turn on debug output')
-    # Depacify
+    # Satisfy
     group2.add_argument('-m', '--manifest', required=True, help='Path of manifest file')
     group2.add_argument('-o', '--out', required=True, help='Path to write output file to')
     group2.add_argument('-c', '--cache', required=True, help='Path to cache directory')
@@ -52,7 +52,7 @@ def main():
         action='version', version=version()) #'%(prog)s '+VERSION)
     args = parser.parse_args()
     cache = 'cache'
-    if args.func in ('pacify', 'depacify'):
+    if args.func in ('pacify', 'satisfy'):
         if args.cache:
             cache = args.cache
     start_timer = time.time()
@@ -68,20 +68,26 @@ def main():
         )
         end_timer = time.time()
         avg_chunk_size = o.total_chunk_size / float(o.total_chunks)
-        print('Wrote manifest to: %s' % (args.manifest))
-        print('   Avg chunk size: %.2f' % (avg_chunk_size))
-        print('     Total chunks: %s' % (o.total_chunks))
-        print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
-        print('    Original size: %s' % (r[1]))
-        print('     Input sha256: %s' % (r[0]))
-        print('         Duration: %.3fs' % (end_timer - start_timer))
-    elif args.func == 'depacify':
-        r = o.depacify(manifest=args.manifest, out_file=args.out, keep_cache=args.keep, overwrite=args.force)
-        end_timer = time.time()
-        print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
-        print('    Output sha256: %s' % (r[0]))
-        print('      Output size: %s' % (r[1]))
-        print('         Duration: %.3fs' % (end_timer - start_timer))
+        if type(r) != tuple:
+            print('ERROR: Failed to pacify:')
+        else:
+            print('Wrote manifest to: %s' % (args.manifest))
+            print('   Avg chunk size: %.2f' % (avg_chunk_size))
+            print('     Total chunks: %s' % (o.total_chunks))
+            print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
+            print('    Original size: %s' % (r[1]))
+            print('     Input sha256: %s' % (r[0]))
+            print('         Duration: %.3fs' % (end_timer - start_timer))
+    elif args.func == 'satisfy':
+        r = o.satisfy(manifest=args.manifest, out_file=args.out, keep_cache=args.keep, overwrite=args.force)
+        if type(r) != tuple:
+            print('ERROR: Failed to satisfy:')
+        else:
+            end_timer = time.time()
+            print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
+            print('    Output sha256: %s' % (r[0]))
+            print('      Output size: %s' % (r[1]))
+            print('         Duration: %.3fs' % (end_timer - start_timer))
     elif args.func == 'reddit':
         print('Generating urls from reddit data...')
         mode = 'w'

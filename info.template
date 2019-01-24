@@ -1,5 +1,0 @@
-
-AUTHOR  = 'Matth Ingersoll <matth@mtingers.com>'
-COMMIT  = '{COMMIT}'
-VERSION = '{TAG}'
-PROJECT = 'http://github.com/mtingers/opacify'

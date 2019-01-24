@@ -10,14 +10,13 @@ from .progress import progress_bar
 EPILOG  = """
 Examples:
     $ opacify pacify --input test.txt --urls urls.txt --manifest test.opm --cache /tmp/cache/
-    $ opacify depacify --output test.txt.out --urls urls.txt --manifest test.opm --cache /tmp/dcache/
+    $ opacify satisfy --out test.txt.out --urls urls.txt --manifest test.opm --cache /tmp/dcache/
 """
 INFOTXT  = """
 Opacify : %s
 Project : %s
 Author  : %s
-Commit  : %s
-""" % (VERSION, PROJECT, AUTHOR, COMMIT)
+""" % (VERSION, PROJECT, AUTHOR)
 
 CHUNK_SIZE = 24
 
@@ -103,7 +102,7 @@ class Opacify(object):
                         break
                     offset = chunk.find(buf)
                     if offset > 0:
-                        assert (len(buf) % 2 == 0 or (len(buf) != 1 and len(buf) % 2 == 0)), "Odd buffer size"
+                        #assert (len(buf) % 2 == 0 or (len(buf) != 1 and len(buf) % 2 == 0)), "Odd buffer size: %d" % (len(buf))
                         return (len(buf), total_chunk_size+offset, url)
                     total_chunk_size += len(chunk)
             lb = len(buf)
@@ -223,7 +222,7 @@ class Opacify(object):
             return self.status(StatusCodes.E_LEN_MISMATCH, 'Output file length did not match manifest length!')
         return (digest, clength)
 
-    def depacify(self, manifest=None, out_file=None, keep_cache=False, overwrite=False):
+    def satisfy(self, manifest=None, out_file=None, keep_cache=False, overwrite=False):
         if os.path.exists(out_file) and not overwrite:
             return self.status(StatusCodes.E_OUTFILE_EXISTS, msg='Output file exists. Use --force option to overwrite.')
         out_f = open(out_file, 'wb')
