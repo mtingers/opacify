@@ -6,7 +6,7 @@ Opacify reads a file and builds a manifest of external sources to rebuild said f
 ```
 usage: opacify [-h] [-V] {pacify,satisfy,verify,reddit} ...
 
-Opacify : v0.1.5
+Opacify : v0.2.0
 Project : http://github.com/mtingers/opacify
 Author  : Matth Ingersoll <matth@mtingers.com>
 
@@ -28,7 +28,7 @@ Examples:
 
 ```
 usage: opacify pacify [-h] -i INPUT -u URLS -m MANIFEST -c CACHE [-k] [-f]
-                      [-d]
+                      [-d] [-t THREADS]
 
 Run in pacify mode (builds manifest from input file)
 
@@ -45,6 +45,8 @@ optional arguments:
                         testing
   -f, --force           Overwrite manifest if it exists
   -d, --debug           Turn on debug output
+  -t THREADS, --threads THREADS
+                        Run processing multiple threads
 ```
 
 ```
