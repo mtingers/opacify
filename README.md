@@ -2,6 +2,81 @@
 
 Opacify reads a file and builds a manifest of external sources to rebuild said file.
 
+# Usage
+```
+usage: opacify.py [-h] [-V] {pacify,depacify,verify} ...
+
+Opacify : v0.1.1
+Project : http://github.com/mtingers/opacify
+Author  : Matth Ingersoll <matth@mtingers.com>
+Commit  : 754ed2be468c3b626d827c0cbfec3d3bcdc30dd0
+
+positional arguments:
+  {pacify,depacify,verify}
+    pacify              Run in pacify mode (builds manifest from input file)
+    depacify            Run in depacify mode (extracts file using manifest)
+    verify              Validate manifest URLs and response length
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -V, --version         Display Opacify version info
+
+Examples:
+    $ opacify pacify --input test.txt --urls urls.txt --manifest test.opm --cache /tmp/cache/
+    $ opacify depacify --output test.txt.out --urls urls.txt --manifest test.opm --cache /tmp/dcache/
+
+```
+
+```
+usage: opacify.py pacify [-h] -i INPUT -u URLS -m MANIFEST -c CACHE [-k] [-f]
+                         [-d]
+
+Run in pacify mode (builds manifest from input file)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+                        Path to input file
+  -u URLS, --urls URLS  Path to urls file
+  -m MANIFEST, --manifest MANIFEST
+                        Output path of manifest file
+  -c CACHE, --cache CACHE
+                        Path to cache directory
+  -k, --keep            Do not remove cache after completed. Useful for
+                        testing
+  -f, --force           Overwrite manifest if it exists
+  -d, --debug           Turn on debug output
+```
+
+```
+usage: opacify.py depacify [-h] -m MANIFEST -o OUT -c CACHE [-k] [-f] [-d]
+
+Run in depacify mode (rebuilds file using manifest)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -m MANIFEST, --manifest MANIFEST
+                        Path of manifest file
+  -o OUT, --out OUT     Path to write output file to
+  -c CACHE, --cache CACHE
+                        Path to cache directory
+  -k, --keep            Do not remove cache after completed. Useful for
+                        testing
+  -f, --force           Overwrite output file if it exists
+  -d, --debug           Turn on debug output
+```
+
+```
+usage: opacify.py verify [-h] -m MANIFEST [-d]
+
+Validate manifest URLs and response length
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -m MANIFEST, --manifest MANIFEST
+                        Path of manifest file
+  -d, --debug           Turn on debug output
+```
 # Examples
 
 ## Opacify A File
