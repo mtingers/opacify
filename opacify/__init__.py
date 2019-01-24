@@ -1,1 +1,1 @@
-from .opacify import Opacify, INFOTXT, EPILOG
+from .opacify import Opacify, INFOTXT, EPILOG, StatusCodes

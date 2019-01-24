@@ -2,7 +2,7 @@ import sys
 import os
 import time
 import argparse
-from opacify import Opacify
+from opacify import Opacify, StatusCodes
 from opacify import INFOTXT, EPILOG
 from opacify import reddit
 
@@ -69,37 +69,45 @@ def main():
             keep_cache=args.keep,
             threads=n_threads,
         )
+        print('\n')
         end_timer = time.time()
         avg_chunk_size = (o.total_chunk_size+1) / float(o.total_chunks+1)
         #if type(r) != tuple:
-        if r != StatusCode.OK:
-            print('')
+        if r != StatusCodes.OK:
             print('ERROR: Failed to pacify:')
-            for result in o.results:
-                for status in result.results:
-                    print('%s: %s' % (status.code, status.message))
+            for status in o.results.get():
+                for i in range(len(status.codes)):
+                    code = status.codes[i]
+                    msg = status.messages[i]
+                    if code == StatusCodes.OK: continue
+                    print('%s: %s' % (code.name, msg))
         else:
             print('Wrote manifest to: %s' % (args.manifest))
             print('   Avg chunk size: %.2f' % (avg_chunk_size))
             print('     Total chunks: %s' % (o.total_chunks))
             print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
-            print('    Original size: %s' % (r[1]))
-            print('     Input sha256: %s' % (r[0]))
+            #print('    Original size: %s' % (r[1]))
+            #print('     Input sha256: %s' % (r[0]))
+            print('    Original size: %s' % (o.clength))
+            print('     Input sha256: %s' % (o.digest))
             print('         Duration: %.3fs' % (end_timer - start_timer))
     elif args.func == 'satisfy':
         r = o.satisfy(manifest=args.manifest, out_file=args.out, keep_cache=args.keep, overwrite=args.force)
+        print('\n')
         #if type(r) != tuple:
-        if r != StatusCode.OK:
-            print('')
+        if r != StatusCodes.OK:
             print('ERROR: Failed to satisfy:')
-            for result in o.results:
-                for status in result.results:
-                    print('%s: %s' % (status.code, status.message))
+            for status in o.results.get():
+                for i in range(len(status.codes)):
+                    code = status.codes[i]
+                    msg = status.messages[i]
+                    if code == StatusCodes.OK: continue
+                    print('%s: %s' % (code.name, msg))
         else:
             end_timer = time.time()
             print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
-            print('    Output sha256: %s' % (r[0]))
-            print('      Output size: %s' % (r[1]))
+            print('    Output sha256: %s' % (o.digest))
+            print('      Output size: %s' % (o.clength))
             print('         Duration: %.3fs' % (end_timer - start_timer))
     elif args.func == 'reddit':
         print('Generating urls from reddit data...')
@@ -120,7 +128,10 @@ def main():
                 print("")
                 print('NOTICE: Not yet implemented: %s' % (args.func))
                 print("")
-    msgs = o.messages()
-    for m in msgs:
-        print('%s: %s' % (m[0], m[1]))
-
+    if r == StatusCodes.OK:
+        for status in o.results.get():
+            for i in range(len(status.codes)):
+                code = status.codes[i]
+                msg = status.messages[i]
+                if code == StatusCodes.OK: continue
+                print('%s: %s' % (code.name, msg))

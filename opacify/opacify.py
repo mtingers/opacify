@@ -1,19 +1,11 @@
-"""
-TODO:
-    1. Reimplement status and message handling
-        - Collect messages
-        - Set status
-        - Status and messages will need to be checked by parent program
-        - This helps with the overlap of who is responsible for error handling
-            and printing messages (pass them to the calling program)
-        - It also helps with multiprocessing since there will be multiple
-            results
-"""
 import os
 import sys
 import time
 import hashlib
+import socket
+socket.setdefaulttimeout(10)
 import requests
+socket.setdefaulttimeout(10)
 import threading
 from enum import Enum
 from multiprocessing import Process, Manager
@@ -54,6 +46,7 @@ class StatusCodes(Enum):
     E_OUTFILE_EXISTS    = 15
     E_URL_NOT_FOUND     = 16
     E_FAILED            = 17
+    E_MANIFEST          = 18
 
 class Status(object):
     def __init__(self, code=None, message=None):
@@ -64,7 +57,7 @@ class Status(object):
 
     def add(self, code, message):
         if type(code) != StatusCodes:
-            raise Exception('Status expects code to be of type StatusCodes') 
+            raise Exception('Status expects code to be of type StatusCodes')
         self.codes.append(code)
         self.messages.append(message)
 
@@ -77,13 +70,15 @@ class Results(object):
             raise Exception('Results expects status to be of type Status')
         self.results.append(status)
 
+    def get(self):
+        return self.results
+
 class Opacify(object):
     def __init__(self, cache_dir=None, debug=False):
         self.total_chunks = 0
         self.total_chunk_size = 0
         self.__version = VERSION
         self.cache_dir = 'cache'
-        self._messages = []
         self.debug = debug
         if cache_dir:
             self.cache_dir = cache_dir
@@ -92,7 +87,7 @@ class Opacify(object):
         self.results = Results()
         self.digest = None
         self.clength = 0
-        
+
     def messages(self):
         return self._messages
 
@@ -100,18 +95,17 @@ class Opacify(object):
         if self.debug:
             print('DEBUG: %s' % (msg))
 
-    def status(self, status, msg=None):
-        if msg is None:
-            msg = status.name
-        self._messages.append((status.name, msg))
+    def result(self, code, message):
         if self.debug:
-            self.print_debug(msg)
-        return status
+            self.print_debug('code=%s message=%s' % (code.name, message))
+        self.results.add(Status(code=code, message=message))
+        return code
 
     def _write_url_to_cache(self, url, overwrite=False):
         cache_path = self._cache_path(url)
         if not os.path.exists(cache_path) or overwrite is True:
             self.print_debug('create cache file: %s' % (cache_path))
+            self.print_debug('get: %s' % (url))
             r = requests.get(url, timeout=5, stream=True)
             if r.status_code != 200:
                 self._failed_urls_cache.append(url)
@@ -157,8 +151,9 @@ class Opacify(object):
             else:
                 buf = buf[:-1]
             if len(buf) < 1:
-                return self.result(StatusCodes.E_URL_NOT_FOUND, 'Unable to find buffer in all URLs')
-        
+                return False
+                #return self.result(StatusCodes.E_URL_NOT_FOUND, 'Unable to find buffer in all URLs')
+
         # Fallthrough that should not be reached. If it is, there is an error in the logic
         return self.result(StatusCodes.E_FAILED, 'Programmer error in _find_buf')
 
@@ -206,7 +201,7 @@ class Opacify(object):
                     # Instead messages are pushed into results and results
                     # added to Manger() dict
                     r = self.result(StatusCodes.E_URL_NOT_FOUND, 'Could not find url for buf at offset: %d' % (offset))
-                    thread_info['msgs'] = self.results
+                    thread_info['result'] = self.results
                     return r
 
                 (buf_len, url_offset, url) = fbu
@@ -294,15 +289,11 @@ class Opacify(object):
         for t in threads:
             t.join()
 
-        print('')
         for i in range(n_threads):
-            status = thread_info[i] #['result']
-            #print('THREAD-%d: status=%s' % (i, status))
-            #pprint(status)
-            if type(status['result']) != tuple:
-                for m in status['msgs']:
-                    print('%s: %s' % (m[0], m[1]))
-
+            status = thread_info[i]
+            for x in status['result'].get():
+                for j in range(len(x.codes)):
+                    self.result(x.codes[j], x.messages[j])
 
         combined_manifest = open(manifest, 'w') # TODO: check if --force
         total_len = 0
@@ -312,8 +303,7 @@ class Opacify(object):
             try:
                 (version, sha, length) = self.get_manifest_header(t_manifest)
             except:
-                self.status(StatusCodes.E_FAILED,
-                    msg='Invalid manifest from thread: %s' % (t_manifest))
+                self.result(StatusCodes.E_MANIFEST, 'Invalid manifest from thread: %s' % (t_manifest))
                 errors += 1
                 continue
             with open(t_manifest, 'r') as m_f:
@@ -326,7 +316,7 @@ class Opacify(object):
                     combined_manifest.write('%s %s %s\n' % (url, url_offset, buf_len))
             os.unlink(t_manifest)
         if errors > 0:
-            return self.result(StatusCodes.E_FAILED, 'Failed to combine all manifests.')
+            return self.result(StatusCodes.E_MANIFEST, 'Failed to combine all manifests.')
         input_hash = hashlib.sha256()
         offset = 0
         with open(input_file, 'rb') as inf_f:
@@ -340,11 +330,13 @@ class Opacify(object):
                 offset += len(buf)
                 input_hash.update(buf)
         sha = input_hash.hexdigest()
+        self.digest = sha
+        self.clength = total_len
         man_header = '_header:%s:%s:%d\n' % (self.__version, sha, total_len)
         inf_f.close()
         combined_manifest.write(man_header)
         combined_manifest.close()
-        return self.result(StatusCode.OK, 'OK')
+        return self.result(StatusCodes.OK, 'OK')
 
     def _cache_path(self, url):
         h = hashlib.sha256(url.encode()).hexdigest()
@@ -395,19 +387,18 @@ class Opacify(object):
             return self.result(StatusCodes.E_LEN_MISMATCH, 'Output file length did not match manifest length!')
         self.digest = digest
         self.clength = clength
-        return self.result(StatusCode.OK, 'OK')
+        return self.result(StatusCodes.OK, 'OK')
 
-    def result(self, code, message):
-        self.results.add(Status(code=code, message=message))
-        return code
-
-    def satisfy(self, manifest=None, out_file=None, keep_cache=False, overwrite=False):
+    def satisfy(self, manifest=None, out_file=None, keep_cache=False, overwrite=False, show_progress=True):
         if os.path.exists(out_file) and not overwrite:
             return self.result(StatusCodes.E_OUTFILE_EXISTS, 'Output file exists. Use --force option to overwrite.')
 
         out_f = open(out_file, 'wb')
         (version, sha, length) = self.get_manifest_header(manifest)
+        length = int(length)
         self.print_debug('Manifest: %s %s %s' % (version, sha, length))
+        timer_start = time.time()
+        progress_offset = 0
         with open(manifest, 'r') as m_f:
             for line in m_f:
                 if line.startswith('_header:'): break
@@ -415,12 +406,17 @@ class Opacify(object):
                 url_offset = int(url_offset)
                 buf_len = int(buf_len)
                 self.print_debug('url=%s offset=%d len=%d' % (url, url_offset, buf_len))
+                progress_offset += buf_len
+                if show_progress:
+                    progress_bar(progress_offset, length, prefix='Progress:', suffix='', length=52,
+                        timer_start=timer_start)
                 buf = b''
                 cache_path = self._cache_path(url)
                 self.print_debug(cache_path)
                 if not os.path.exists(cache_path):
                     self.print_debug('create cache file: %s' % (cache_path))
-                    r = requests.get(url, timeout=30, stream=True)
+                    self.print_debug('get: %s' % (url))
+                    r = requests.get(url, timeout=5, stream=True)
                     if r.status_code != 200:
                         return self.result(StatusCodes.E_OPEN_URL,
                             'Failed to open url: %s\nOutput file is incomplete.' % (url))
