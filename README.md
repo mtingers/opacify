@@ -4,18 +4,19 @@ Opacify reads a file and builds a manifest of external sources to rebuild said f
 
 # Usage
 ```
-usage: opacify [-h] [-V] {pacify,depacify,verify} ...
+usage: opacify [-h] [-V] {pacify,depacify,verify,reddit} ...
 
-Opacify : v0.1.2
+Opacify : v0.1.4
 Project : http://github.com/mtingers/opacify
 Author  : Matth Ingersoll <matth@mtingers.com>
-Commit  : 754ed2be468c3b626d827c0cbfec3d3bcdc30dd0
+Commit  : 8b1985f41c78e137f41ffc57c14bd71d915ea91f
 
 positional arguments:
-  {pacify,depacify,verify}
+  {pacify,depacify,verify,reddit}
     pacify              Run in pacify mode (builds manifest from input file)
     depacify            Run in depacify mode (extracts file using manifest)
     verify              Validate manifest URLs and response length
+    reddit              Auto-generate a urls file from reddit links
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -24,12 +25,11 @@ optional arguments:
 Examples:
     $ opacify pacify --input test.txt --urls urls.txt --manifest test.opm --cache /tmp/cache/
     $ opacify depacify --output test.txt.out --urls urls.txt --manifest test.opm --cache /tmp/dcache/
-
 ```
 
 ```
 usage: opacify pacify [-h] -i INPUT -u URLS -m MANIFEST -c CACHE [-k] [-f]
-                         [-d]
+                      [-d]
 
 Run in pacify mode (builds manifest from input file)
 
@@ -77,6 +77,19 @@ optional arguments:
                         Path of manifest file
   -d, --debug           Turn on debug output
 ```
+
+```
+usage: opacify reddit [-h] -o OUT -c COUNT
+
+Auto-generate a urls file from reddit links
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUT, --out OUT     Path to write urls to
+  -c COUNT, --count COUNT
+                        How many links to get
+```
+
 # Examples
 
 Please note that the example output may not be accurate at this time as it is a work
