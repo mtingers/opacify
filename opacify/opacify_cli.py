@@ -38,6 +38,7 @@ def main():
         help='Do not remove cache after completed. Useful for testing')
     group1.add_argument('-f', '--force', action='store_const', const=True, help='Overwrite manifest if it exists')
     group1.add_argument('-d', '--debug', action='store_const', const=True, help='Turn on debug output')
+    group1.add_argument('-t', '--threads', help='Run processing multiple threads')
     # Satisfy
     group2.add_argument('-m', '--manifest', required=True, help='Path of manifest file')
     group2.add_argument('-o', '--out', required=True, help='Path to write output file to')
@@ -57,6 +58,7 @@ def main():
             cache = args.cache
     start_timer = time.time()
     debug = getattr(args, 'debug', False)
+    n_threads = getattr(args, 'threads', None)
     o = Opacify(cache_dir=cache, debug=debug)
     if args.func == 'pacify':
         r = o.pacify(
@@ -64,11 +66,13 @@ def main():
             url_file=args.urls,
             manifest=args.manifest,
             overwrite=args.force,
-            keep_cache=args.keep
+            keep_cache=args.keep,
+            threads=n_threads,
         )
         end_timer = time.time()
-        avg_chunk_size = o.total_chunk_size / float(o.total_chunks)
+        avg_chunk_size = (o.total_chunk_size+1) / float(o.total_chunks+1)
         if type(r) != tuple:
+            print('')
             print('ERROR: Failed to pacify:')
         else:
             print('Wrote manifest to: %s' % (args.manifest))
@@ -81,6 +85,7 @@ def main():
     elif args.func == 'satisfy':
         r = o.satisfy(manifest=args.manifest, out_file=args.out, keep_cache=args.keep, overwrite=args.force)
         if type(r) != tuple:
+            print('')
             print('ERROR: Failed to satisfy:')
         else:
             end_timer = time.time()

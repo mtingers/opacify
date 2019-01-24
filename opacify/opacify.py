@@ -1,9 +1,23 @@
+"""
+TODO:
+    1. Reimplement status and message handling
+        - Collect messages
+        - Set status
+        - Status and messages will need to be checked by parent program
+        - This helps with the overlap of who is responsible for error handling
+            and printing messages (pass them to the calling program)
+        - It also helps with multiprocessing since there will be multiple
+            results
+"""
 import os
 import sys
 import time
-import requests
 import hashlib
+import requests
+import threading
 from enum import Enum
+from multiprocessing import Process, Manager
+from pprint import pprint
 
 from .opacifyinfo import *
 from .progress import progress_bar
@@ -38,6 +52,8 @@ class StatusCodes(Enum):
     E_HASH_MISMATCH     = 13
     E_LEN_MISMATCH      = 14
     E_OUTFILE_EXISTS    = 15
+    E_URL_NOT_FOUND     = 16
+    E_FAILED            = 17
 
 class Opacify(object):
     def __init__(self, cache_dir=None, debug=False):
@@ -117,13 +133,13 @@ class Opacify(object):
             else:
                 buf = buf[:-1]
             if len(buf) < 1:
-                return self.status(StatusCodes.E_BUFFER_NOT_FOUND,
+                return self.status(StatusCodes.E_URL_NOT_FOUND,
                     msg='Unable to find buffer in all URLs')
 
         return StatusCodes.E_NONE
 
-    def pacify(self, input_file=None, url_file=None, manifest=None, overwrite=False, keep_cache=False):
-        self.timer_start = time.time()
+    def _pacify(self, input_file=None, url_file=None, manifest=None, overwrite=False, keep_cache=False,
+            input_offset=None, input_end=None, show_progress=False, thread_id=None, thread_info=None):
         input_hash = hashlib.sha256()
         if not input_file or not url_file or not manifest:
             raise Exception('pacify() requires input_file, url_file, manifest')
@@ -132,14 +148,28 @@ class Opacify(object):
             return self.status(StatusCodes.E_MANIFEST_EXISTS,
                 msg='Manifest file exists. Use --force to overwrite')
 
-        inf_f = open(input_file, 'rb')
+        if input_offset is not None and input_end is not None:
+            manifest += '-%s-%s.tmp' % (input_offset, input_end)
+            inf_f = open(input_file, 'rb')
+            self.print_debug('THREADED(%d): input_offset:%d input_end:%d' % (thread_id, input_offset, input_end))
+            inf_f.seek(input_offset, os.SEEK_SET)
+            input_size = input_end - input_offset
+            offset = 0 #ehhh 0 should work? right?
+            thread_info['up'] = True
+        else:
+            inf_f = open(input_file, 'rb')
+            input_size = os.path.getsize(input_file)
+            offset = 0
+
         man_f = open(manifest, 'w')
         urls = open(url_file).read().strip().split('\n')
-        offset = 0
-        input_size = os.path.getsize(input_file)
-        progress_bar(0, input_size, prefix='Progress:', suffix='', length=62)
-        while True:
-            buf = inf_f.read(CHUNK_SIZE)
+        if show_progress and thread_id is None:
+            progress_bar(0, input_size, prefix='Progress:', suffix='', length=52)
+        while offset < input_size:
+            if input_size - offset < CHUNK_SIZE:
+                buf = inf_f.read(input_size - offset)
+            else:
+                buf = inf_f.read(CHUNK_SIZE)
             if not buf:
                 break
             input_hash.update(buf)
@@ -148,9 +178,12 @@ class Opacify(object):
             cur_offset = offset
             while prev_buf_len > 0:
                 fbu = self._find_buf(buf, urls)
-                if fbu is StatusCodes.E_NONE:
-                    raise self.status(StatusCodes.E_NO_URL_FOUND,
+                if type(fbu) is not tuple: #StatusCodes.E_NONE:
+                    self.status(StatusCodes.E_URL_NOT_FOUND,
                         msg='Could not find url for buf at offset: %d' % (offset))
+                    thread_info['msgs'] = self.messages()
+                    return
+
                 (buf_len, url_offset, url) = fbu
                 self.total_chunk_size += buf_len
                 self.total_chunks += 1
@@ -160,13 +193,19 @@ class Opacify(object):
                 man_f.write('%s %s %s\n' % (url, url_offset, buf_len))
                 buf = buf[buf_len:]
                 prev_buf_len = len(buf)
-                progress_bar(cur_offset, input_size, prefix='Progress:', suffix='', length=62,
-                    timer_start=self.timer_start)
+                if show_progress:
+                    if thread_id is None:
+                        progress_bar(cur_offset, input_size, prefix='Progress:', suffix='', length=52,
+                            timer_start=self.timer_start)
 
             offset += start_buf_len
-            if not self.debug:
-                progress_bar(offset, input_size, prefix='Progress:', suffix='', length=62, timer_start=self.timer_start)
-        print('')
+            if not self.debug and show_progress:
+                if thread_id is not None:
+                    progress_bar(offset, input_size, prefix='Progress:', suffix='thread-%s' % (thread_id),
+                        length=52, timer_start=self.timer_start)
+                else:
+                    progress_bar(offset, input_size, prefix='Progress:', suffix='', length=52,
+                        timer_start=self.timer_start)
         sha = input_hash.hexdigest()
         man_header = '_header:%s:%s:%d\n' % (self.__version, sha, offset)
         man_f.write(man_header)
@@ -174,7 +213,116 @@ class Opacify(object):
         man_f.close()
         if not keep_cache:
             self.clean_cache()
+        if thread_id is not None and thread_id is not False and thread_info:
+            thread_info['result'] = (sha, offset)
+            thread_info['msgs'] = self.messages()
+            #thread_info[thread_id]= (sha, offset)
+            #print('done:', thread_info[thread_id])
         return (sha, offset)
+
+    def pacify(self, input_file=None, url_file=None, manifest=None, overwrite=False, keep_cache=False, threads=None):
+        self.timer_start = time.time()
+        if threads is None:
+            return self._pacify(input_file=input_file, url_file=url_file, manifest=manifest,
+                overwrite=overwrite, keep_cache=keep_cache, show_progress=True)
+
+        # threads is set
+        n_threads = int(threads)
+        input_size = os.path.getsize(input_file)
+        # do not thread on small sizes
+        if n_threads*10 > input_size:
+            return self._pacify(input_file=input_file, url_file=url_file, manifest=manifest,
+                overwrite=overwrite, keep_cache=keep_cache, show_progress=True)
+
+        leftovers = input_size % n_threads
+        per_thread = int(input_size / n_threads)
+        # {} Allows multiprocess communication back to parent
+        manager = Manager()
+        thread_info = manager.dict()
+        offset = 0
+        for i in range(n_threads):
+            offset += per_thread
+            thread_info[i] = manager.dict(
+                {'offset':offset-per_thread, 'end':offset, 'result':None, 'up':False, 'msgs':[]})
+        thread_info[i]['end'] += leftovers # Add the remaining to the last thread
+        threads = []
+        for i in range(n_threads):
+            kw = {
+                'input_file':input_file,
+                'url_file':url_file,
+                'manifest':manifest,
+                'overwrite':overwrite,
+                'keep_cache':keep_cache,
+                'input_offset':thread_info[i]['offset'],
+                'input_end':thread_info[i]['end'],
+                'thread_id':i, 'show_progress':True,
+                'thread_info':thread_info[i],
+            }
+            if i+1 >= n_threads:
+                kw['show_progress'] = True
+            #t = threading.Thread(target=self._pacify, kwargs=kw)
+            t = Process(target=self._pacify, kwargs=kw)
+            #t.daemon = True
+            t.start()
+            threads.append(t)
+        # Threads will write to their own unique file "mainifest+offset+end.tmp"
+        # We then need to join these temp files in order to create the final
+        # manifes
+        for t in threads:
+            t.join()
+
+        print('')
+        for i in range(n_threads):
+            status = thread_info[i] #['result']
+            #print('THREAD-%d: status=%s' % (i, status))
+            #pprint(status)
+            if type(status['result']) != tuple:
+                for m in status['msgs']:
+                    print('%s: %s' % (m[0], m[1]))
+
+
+        combined_manifest = open(manifest, 'w') # TODO: check if --force
+        total_len = 0
+        errors = 0
+        for i in range(n_threads):
+            t_manifest = '%s-%s-%s.tmp' % (manifest, thread_info[i]['offset'], thread_info[i]['end'])
+            try:
+                (version, sha, length) = self.get_manifest_header(t_manifest)
+            except:
+                self.status(StatusCodes.E_FAILED,
+                    msg='Invalid manifest from thread: %s' % (t_manifest))
+                errors += 1
+                continue
+            with open(t_manifest, 'r') as m_f:
+                for line in m_f:
+                    if line.startswith('_header:'): break
+                    (url, url_offset, buf_len) = line.strip().split(' ')
+                    self.total_chunk_size += int(buf_len)
+                    self.total_chunks += 1
+                    total_len += int(buf_len)
+                    combined_manifest.write('%s %s %s\n' % (url, url_offset, buf_len))
+            os.unlink(t_manifest)
+        if errors > 0:
+            return self.status(StatusCodes.E_FAILED, msg='Failed to combine all manifests.')
+        input_hash = hashlib.sha256()
+        offset = 0
+        with open(input_file, 'rb') as inf_f:
+            while True:
+                if total_len - offset < CHUNK_SIZE:
+                    buf = inf_f.read(total_len - offset)
+                else:
+                    buf = inf_f.read(CHUNK_SIZE)
+                if not buf:
+                    break
+                offset += len(buf)
+                input_hash.update(buf)
+        sha = input_hash.hexdigest()
+        man_header = '_header:%s:%s:%d\n' % (self.__version, sha, total_len)
+        inf_f.close()
+        combined_manifest.write(man_header)
+        combined_manifest.close()
+
+        return (sha, total_len)
 
     def _cache_path(self, url):
         h = hashlib.sha256(url.encode()).hexdigest()

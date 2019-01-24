@@ -46,7 +46,7 @@ def progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=50, 
     filled_length = int(length * iteration // total)
     bar = fill * filled_length + '-' * (length - filled_length)
     if estimate:
-        sys.stdout.write('\r%s |%s| %s %s%% %s %.2fm remaining    \r' % (prefix, bar, tail, percent, suffix, estimate)) #, end = '\r')
+        sys.stdout.write('\r%s |%s| %s %s%% %s  %.2fm remaining    \r' % (prefix, bar, tail, percent, suffix, estimate)) #, end = '\r')
     else:
         sys.stdout.write('\r%s |%s| %s %s%% %s\r' % (prefix, bar, tail, percent, suffix)) #, end = '\r')
     sys.stdout.flush()
