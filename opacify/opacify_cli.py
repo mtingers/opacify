@@ -4,6 +4,7 @@ import time
 import argparse
 from opacify import Opacify
 from opacify import INFOTXT, EPILOG
+from opacify import reddit
 
 def version():
     return INFOTXT
@@ -24,7 +25,11 @@ def main():
         help='Run in depacify mode (extracts file using manifest)')
     group3 = subparser.add_parser('verify', description='Validate manifest URLs and response length',
         help='Validate manifest URLs and response length')
+    group4 = subparser.add_parser('reddit', description='Generate a urls file from reddit links',
+        help='Generate a urls file from reddit links')
     # Pacify
+    group4.add_argument('-o', '--out', required=True, help='Path to write urls to')
+    group4.add_argument('-c', '--count', required=True, help='How many links to get')
     group1.add_argument('-i', '--input', required=True, help='Path to input file')
     group1.add_argument('-u', '--urls', required=True, help='Path to urls file')
     group1.add_argument('-m', '--manifest', required=True, help='Output path of manifest file')
@@ -74,6 +79,18 @@ def main():
         print('    Output sha256: %s' % (r[0]))
         print('      Output size: %s' % (r[1]))
         print('         Duration: %.3fs' % (end_timer - start_timer))
+    elif args.func == 'reddit':
+        print('Generating urls from reddit data...')
+        mode = 'w'
+        if os.path.exists(args.out):
+            print('NOTE: %s exists. Appending to file.' % (args.out))
+            mode = 'a'
+        links = reddit.reddit_get_links(count=args.count, sleep=5, giveup=600)
+        with open(args.out, mode) as f:
+            for link in links:
+                f.write('%s\n' % (link))
+        print('Wrote urls data to: %s' % (args.out))
+
     else:
         parser.print_help()
         if args.func:
