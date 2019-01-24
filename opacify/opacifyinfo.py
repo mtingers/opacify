@@ -1,5 +1,5 @@
 
 AUTHOR  = 'Matth Ingersoll <matth@mtingers.com>'
-COMMIT  = '5f01301dc6a6340d8f10fac077461dfa3fa196d5'
+COMMIT  = '8b1985f41c78e137f41ffc57c14bd71d915ea91f'
 VERSION = 'v0.1.4'
 PROJECT = 'http://github.com/mtingers/opacify'
