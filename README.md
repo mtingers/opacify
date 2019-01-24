@@ -226,6 +226,7 @@ Status: Found source http://foo.com/foo.gif for offset 32, using 12 bytes
 ...
 Status: Complete!
 Runtime: 24 minutes
+```
 
 ## Backup
 
