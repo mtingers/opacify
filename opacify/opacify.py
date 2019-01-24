@@ -46,6 +46,7 @@ class Opacify(object):
         self.debug = debug
         if cache_dir:
             self.cache_dir = cache_dir
+        self._failed_urls_cache = []
 
     def messages(self):
         return self._status_messages
@@ -68,6 +69,7 @@ class Opacify(object):
             self.print_debug('create cache file: %s' % (cache_path))
             r = requests.get(url, timeout=5, stream=True)
             if r.status_code != 200:
+                self._failed_urls_cache.append(url)
                 return self.status(StatusCodes.E_URL_OPEN, msg='Failed to open URL: %s' % (url))
             try:
                 with open(cache_path, 'wb') as cache_f:
@@ -81,6 +83,8 @@ class Opacify(object):
     def _find_buf(self, buf, urls):
         while True:
             for url in urls:
+                if url in self._failed_urls_cache:
+                    continue
                 test = self._write_url_to_cache(url)
                 if test == StatusCodes.E_URL_OPEN:
                     continue
