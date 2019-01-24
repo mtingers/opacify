@@ -226,4 +226,10 @@ Status: Found source http://foo.com/foo.gif for offset 32, using 12 bytes
 ...
 Status: Complete!
 Runtime: 24 minutes
-```
+
+## Backup
+
+Add ```--backup-level N``` option to create multiple manifest items for a buffer.
+This is like having replication/a backup for part of a file. If one URL source fails, a backup
+URL can be used.
+
