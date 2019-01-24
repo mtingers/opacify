@@ -17,7 +17,7 @@ def main():
     )
     subparser = parser.add_subparsers(dest='func')
     if sys.version_info[0] < 3:
-        subparser.required = True     
+        subparser.required = True
     group1 = subparser.add_parser('pacify', description='Run in pacify mode (builds manifest from input file)',
          help='Run in pacify mode (builds manifest from input file)')
     group2 = subparser.add_parser('depacify', description='Run in depacify mode (rebuilds file using manifest)',

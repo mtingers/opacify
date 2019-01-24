@@ -46,6 +46,7 @@ class Opacify(object):
         self.debug = debug
         if cache_dir:
             self.cache_dir = cache_dir
+
     def messages(self):
         return self._status_messages
 
@@ -113,7 +114,6 @@ class Opacify(object):
 
         return StatusCodes.E_NONE
 
-
     def pacify(self, input_file=None, url_file=None, manifest=None, overwrite=False, keep_cache=False):
         input_hash = hashlib.sha256()
         if not input_file or not url_file or not manifest:
@@ -160,7 +160,6 @@ class Opacify(object):
         h = hashlib.sha256(url.encode()).hexdigest()
         cache_path = '%s/opacify-%s.tmp' % (self.cache_dir, h)
         return cache_path
-
 
     def get_manifest_header(self, manifest_path):
         last_line = None
