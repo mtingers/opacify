@@ -40,9 +40,9 @@ def progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=50, 
     estimate = None
     if timer_start:
         duration = time.time() - timer_start
-        estimate = ((duration / float(iteration)) * (total - iteration)) / 60.0
+        estimate = (((1+duration) / float(iteration+1)) * (total - iteration)) / 60.0
 
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    percent = ("{0:." + str(decimals) + "f}").format(100 * ((1+iteration) / float(total+1)))
     filled_length = int(length * iteration // total)
     bar = fill * filled_length + '-' * (length - filled_length)
     if estimate:

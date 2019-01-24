@@ -181,8 +181,13 @@ class Opacify(object):
 
         man_f = open(manifest, 'w')
         urls = open(url_file).read().strip().split('\n')
-        if show_progress and thread_id is None:
-            progress_bar(0, input_size, prefix='Progress:', suffix='', length=52)
+        if show_progress:
+            if thread_id is not None:
+                progress_bar(0, input_size, prefix='Progress:', suffix='thread-%s' % (thread_id),
+                    length=52, timer_start=self.timer_start)
+            else:
+                progress_bar(0, input_size, prefix='Progress:', suffix='', length=52,
+                    timer_start=self.timer_start)
         while offset < input_size:
             if input_size - offset < CHUNK_SIZE:
                 buf = inf_f.read(input_size - offset)
