@@ -5,6 +5,7 @@ import hashlib
 from enum import Enum
 
 from .opacifyinfo import *
+from .progress import progress_bar
 
 EPILOG  = """
 Examples:
@@ -40,6 +41,8 @@ class StatusCodes(Enum):
 
 class Opacify(object):
     def __init__(self, cache_dir=None, debug=False):
+        self.total_chunks = 0
+        self.total_chunk_size = 0
         self.__version = VERSION
         self.cache_dir = 'cache'
         self._status_messages = []
@@ -131,6 +134,8 @@ class Opacify(object):
         man_f = open(manifest, 'w')
         urls = open(url_file).read().strip().split('\n')
         offset = 0
+        input_size = os.path.getsize(input_file)
+        progress_bar(0, input_size, prefix='Progress:', suffix='', length=62)
         while True:
             buf = inf_f.read(CHUNK_SIZE)
             if not buf:
@@ -138,19 +143,27 @@ class Opacify(object):
             input_hash.update(buf)
             start_buf_len = len(buf)
             prev_buf_len = len(buf)
+            cur_offset = offset
             while prev_buf_len > 0:
                 fbu = self._find_buf(buf, urls)
                 if fbu is StatusCodes.E_NONE:
                     raise self.status(StatusCodes.E_NO_URL_FOUND,
                         msg='Could not find url for buf at offset: %d' % (offset))
                 (buf_len, url_offset, url) = fbu
+                self.total_chunk_size += buf_len
+                self.total_chunks += 1
+                cur_offset += buf_len
                 assert buf_len != 0, 'buffer length is 0'
                 self.print_debug('buf_len=%d url_offset=%d foff=%d url=%s' % (buf_len, url_offset, offset, url))
                 man_f.write('%s %s %s\n' % (url, url_offset, buf_len))
                 buf = buf[buf_len:]
                 prev_buf_len = len(buf)
+                progress_bar(cur_offset, input_size, prefix='Progress:', suffix='', length=62)
 
             offset += start_buf_len
+            if not self.debug:
+                progress_bar(offset, input_size, prefix='Progress:', suffix='', length=62)
+        print('')
         sha = input_hash.hexdigest()
         man_header = '_header:%s:%s:%d\n' % (self.__version, sha, offset)
         man_f.write(man_header)

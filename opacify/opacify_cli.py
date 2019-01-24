@@ -67,7 +67,10 @@ def main():
             keep_cache=args.keep
         )
         end_timer = time.time()
+        avg_chunk_size = o.total_chunk_size / float(o.total_chunks)
         print('Wrote manifest to: %s' % (args.manifest))
+        print('   Avg chunk size: %.2f' % (avg_chunk_size))
+        print('     Total chunks: %s' % (o.total_chunks))
         print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
         print('    Original size: %s' % (r[1]))
         print('     Input sha256: %s' % (r[0]))
