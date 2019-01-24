@@ -79,6 +79,9 @@ optional arguments:
 ```
 # Examples
 
+Please note that the example output may not be accurate at this time as it is a work
+in progress.
+
 ## Opacify A File
 ```
 $ opacify pacify --input test.txt --urls sources.txt --manifest test.opacify
@@ -203,7 +206,7 @@ This example describes the following process to rebuild the input file from the 
 
 ## Implementation
 
-You know, implement the code.
+~~You know, implement the code.~~ First POC done.
 
 ## Threading
 
@@ -216,7 +219,7 @@ from common locations (e.g. imgur, giphy, reddit, etc). Depending on the input f
 take an extremely long time.
 
 ```
-$ opacify -o --input test.txt --urls-auto --manifest test.opacify --verbose
+$ opacify pacify --input test.txt --urls-auto --manifest test.opacify --verbose
 Running pacify on test.txt and finding external sources ...
 Status: Found source http://foo.com/hello.txt for offset 0, using 32 bytes
 Status: Found source http://foo.com/foo.gif for offset 32, using 12 bytes
