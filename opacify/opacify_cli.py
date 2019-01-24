@@ -71,9 +71,13 @@ def main():
         )
         end_timer = time.time()
         avg_chunk_size = (o.total_chunk_size+1) / float(o.total_chunks+1)
-        if type(r) != tuple:
+        #if type(r) != tuple:
+        if r != StatusCode.OK:
             print('')
             print('ERROR: Failed to pacify:')
+            for result in o.results:
+                for status in result.results:
+                    print('%s: %s' % (status.code, status.message))
         else:
             print('Wrote manifest to: %s' % (args.manifest))
             print('   Avg chunk size: %.2f' % (avg_chunk_size))
@@ -84,9 +88,13 @@ def main():
             print('         Duration: %.3fs' % (end_timer - start_timer))
     elif args.func == 'satisfy':
         r = o.satisfy(manifest=args.manifest, out_file=args.out, keep_cache=args.keep, overwrite=args.force)
-        if type(r) != tuple:
+        #if type(r) != tuple:
+        if r != StatusCode.OK:
             print('')
             print('ERROR: Failed to satisfy:')
+            for result in o.results:
+                for status in result.results:
+                    print('%s: %s' % (status.code, status.message))
         else:
             end_timer = time.time()
             print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
