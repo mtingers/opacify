@@ -204,29 +204,9 @@ This example describes the following process to rebuild the input file from the 
 
 # TODO
 
-## Implementation
-
-~~You know, implement the code.~~ First POC done.
-
 ## Threading
 
 Make a --threads option to speed up operations when interacting with external sources.
-
-## Auto External Sources
-
-Instead of having to compile a list of sources to build from, provide a way to auto-build this source
-from common locations (e.g. imgur, giphy, reddit, etc). Depending on the input file size, this could
-take an extremely long time.
-
-```
-$ opacify pacify --input test.txt --urls-auto --manifest test.opacify --verbose
-Running pacify on test.txt and finding external sources ...
-Status: Found source http://foo.com/hello.txt for offset 0, using 32 bytes
-Status: Found source http://foo.com/foo.gif for offset 32, using 12 bytes
-...
-Status: Complete!
-Runtime: 24 minutes
-```
 
 ## Backup
 

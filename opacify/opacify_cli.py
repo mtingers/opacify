@@ -25,8 +25,8 @@ def main():
         help='Run in depacify mode (extracts file using manifest)')
     group3 = subparser.add_parser('verify', description='Validate manifest URLs and response length',
         help='Validate manifest URLs and response length')
-    group4 = subparser.add_parser('reddit', description='Generate a urls file from reddit links',
-        help='Generate a urls file from reddit links')
+    group4 = subparser.add_parser('reddit', description='Auto-generate a urls file from reddit links',
+        help='Auto-generate a urls file from reddit links')
     # Pacify
     group4.add_argument('-o', '--out', required=True, help='Path to write urls to')
     group4.add_argument('-c', '--count', required=True, help='How many links to get')
