@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import requests
 import hashlib
 from enum import Enum
@@ -49,6 +50,7 @@ class Opacify(object):
         if cache_dir:
             self.cache_dir = cache_dir
         self._failed_urls_cache = []
+        self.timer_start = time.time()
 
     def messages(self):
         return self._status_messages
@@ -121,6 +123,7 @@ class Opacify(object):
         return StatusCodes.E_NONE
 
     def pacify(self, input_file=None, url_file=None, manifest=None, overwrite=False, keep_cache=False):
+        self.timer_start = time.time()
         input_hash = hashlib.sha256()
         if not input_file or not url_file or not manifest:
             raise Exception('pacify() requires input_file, url_file, manifest')
@@ -157,11 +160,12 @@ class Opacify(object):
                 man_f.write('%s %s %s\n' % (url, url_offset, buf_len))
                 buf = buf[buf_len:]
                 prev_buf_len = len(buf)
-                progress_bar(cur_offset, input_size, prefix='Progress:', suffix='', length=62)
+                progress_bar(cur_offset, input_size, prefix='Progress:', suffix='', length=62,
+                    timer_start=self.timer_start)
 
             offset += start_buf_len
             if not self.debug:
-                progress_bar(offset, input_size, prefix='Progress:', suffix='', length=62)
+                progress_bar(offset, input_size, prefix='Progress:', suffix='', length=62, timer_start=self.timer_start)
         print('')
         sha = input_hash.hexdigest()
         man_header = '_header:%s:%s:%d\n' % (self.__version, sha, offset)
