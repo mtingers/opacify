@@ -6,7 +6,22 @@ import argparse
 import requests
 import hashlib
 from enum import Enum
-from shutil import rmtree
+from pprint import pprint
+import time
+
+from opacifyinfo import *
+
+EPILOG  = """
+Examples:
+    $ opacify pacify --input test.txt --urls urls.txt --manifest test.opm --cache /tmp/cache/
+    $ opacify depacify --output test.txt.out --urls urls.txt --manifest test.opm --cache /tmp/dcache/
+"""
+INFOTXT  = """
+Opacify : %s
+Project : %s
+Author  : %s
+Commit  : %s
+""" % (VERSION, PROJECT, AUTHOR, COMMIT)
 
 CHUNK_SIZE = 24
 
@@ -26,10 +41,12 @@ class StatusCodes(Enum):
     E_OPEN_URL          = 12
     E_HASH_MISMATCH     = 13
     E_LEN_MISMATCH      = 14
+    E_OUTFILE_EXISTS    = 15
+    E_MANIFEST_EXISTS   = 16
 
 class Opacify(object):
     def __init__(self, cache_dir=None, debug=False):
-        self.__version = '0.1.0'
+        self.__version = VERSION
         self.cache_dir = 'cache'
         self._status_messages = []
         self.debug = debug
@@ -108,9 +125,9 @@ class Opacify(object):
         if not input_file or not url_file or not manifest:
             raise Exception('pacify() requires input_file, url_file, manifest')
 
-        if os.path.exists(manifest) and overwrite is False:
+        if os.path.exists(manifest) and not overwrite:
             return self.status(StatusCodes.E_MANIFEST_EXISTS,
-                msg='Manifest file exists. Use overwrite=True to overwrite')
+                msg='Manifest file exists. Use --force to overwrite')
 
         inf_f = open(input_file, 'rb')
         man_f = open(manifest, 'w')
@@ -136,12 +153,14 @@ class Opacify(object):
                 prev_buf_len = len(buf)
 
             offset += start_buf_len
-        man_header = '_header:%s:%s:%d\n' % (self.__version, input_hash.hexdigest(), offset)
+        sha = input_hash.hexdigest()
+        man_header = '_header:%s:%s:%d\n' % (self.__version, sha, offset)
         man_f.write(man_header)
         inf_f.close()
         man_f.close()
-        if keep_cache is False:
+        if not keep_cache:
             self.clean_cache()
+        return (sha, offset)
 
     def _cache_path(self, url):
         h = hashlib.sha256(url.encode()).hexdigest()
@@ -161,15 +180,6 @@ class Opacify(object):
             f.seek(start_offset, os.SEEK_SET)
             for last_line in f:
                 pass
-            """
-            first = f.readline()
-            if f.read(1) == '':
-                return self.status(StatusCodes.E_INVALID_MANIFEST, 'Manifest header is blank!')
-            f.seek(-2, 2)  # Jump to the second last byte.
-            while f.read(1) != b"\n":  # Until EOL is found...
-                f.seek(-2, 1)  # ...jump back the read byte plus one more.
-            last = f.readline()  # Read last line.
-            """
         (_, version, sha, length) = last_line.split(':')
         return (version, sha, int(length))
 
@@ -201,9 +211,11 @@ class Opacify(object):
         self.print_debug('length=%d clen=%d' % (length, clength))
         if length != clength:
             return self.status(StatusCodes.E_LEN_MISMATCH, 'Output file length did not match manifest length!')
-        return StatusCodes.OK
+        return (digest, clength)
 
-    def depacify(self, manifest=None, out_file=None, keep_cache=False):
+    def depacify(self, manifest=None, out_file=None, keep_cache=False, overwrite=False):
+        if os.path.exists(out_file) and not overwrite:
+            return self.status(StatusCodes.E_OUTFILE_EXISTS, msg='Output file exists. Use --force option to overwrite.')
         out_f = open(out_file, 'wb')
         (version, sha, length) = self.get_manifest_header(manifest)
         self.print_debug('Manifest: %s %s %s' % (version, sha, length))
@@ -239,17 +251,77 @@ class Opacify(object):
                 buf = buf[url_offset:url_offset+buf_len]
                 out_f.write(buf)
             out_f.close()
-        if keep_cache is False:
+        if not keep_cache:
             self.clean_cache()
-        self.validate_output(out_file, sha, length)
+        return self.validate_output(out_file, sha, length)
 
-o = Opacify(cache_dir='cache', debug=True)
+def version():
+    return INFOTXT
 
-o.pacify(input_file=sys.argv[1], url_file=sys.argv[2], manifest=sys.argv[3], overwrite=True, keep_cache=True)
-o.cache_dir = 'dcache'
-o.depacify(manifest=sys.argv[3], out_file=sys.argv[4], keep_cache=True)
-
-from pprint import pprint
-pprint(o.messages())
-
-
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description=INFOTXT,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=EPILOG
+    )
+    subparser = parser.add_subparsers(dest='func')
+    group1 = subparser.add_parser('pacify', description='Run in pacify mode (builds manifest from input file)',
+         help='Run in pacify mode (builds manifest from input file)')
+    group2 = subparser.add_parser('depacify', description='Run in depacify mode (rebuilds file using manifest)',
+        help='Run in depacify mode (extracts file using manifest)')
+    group3 = subparser.add_parser('verify', description='Validate manifest URLs and response length',
+        help='Validate manifest URLs and response length')
+    # Pacify
+    group1.add_argument('-i', '--input', required=True, help='Path to input file')
+    group1.add_argument('-u', '--urls', required=True, help='Path to urls file')
+    group1.add_argument('-m', '--manifest', required=True, help='Output path of manifest file')
+    group1.add_argument('-c', '--cache', required=True, help='Path to cache directory')
+    group1.add_argument('-k', '--keep', action='store_const', const=True,
+        help='Do not remove cache after completed. Useful for testing')
+    group1.add_argument('-f', '--force', action='store_const', const=True, help='Overwrite manifest if it exists')
+    group1.add_argument('-d', '--debug', action='store_const', const=True, help='Turn on debug output')
+    # Depacify
+    group2.add_argument('-m', '--manifest', required=True, help='Path of manifest file')
+    group2.add_argument('-o', '--out', required=True, help='Path to write output file to')
+    group2.add_argument('-c', '--cache', required=True, help='Path to cache directory')
+    group2.add_argument('-k', '--keep', action='store_const', const=True,
+        help='Do not remove cache after completed. Useful for testing')
+    group2.add_argument('-f', '--force', action='store_const', const=True, help='Overwrite output file if it exists', default=False)
+    group2.add_argument('-d', '--debug', action='store_const', const=True, help='Turn on debug output')
+    group3.add_argument('-m', '--manifest', required=True, help='Path of manifest file')
+    group3.add_argument('-d', '--debug', action='store_const', const=True, help='Turn on debug output')
+    parser.add_argument('-V', '--version', help='Display Opacify version info',
+        action='version', version=version()) #'%(prog)s '+VERSION)
+    args = parser.parse_args()
+    cache = 'cache'
+    if args.func in ('pacify', 'depacify'):
+        if args.cache:
+            cache = args.cache
+    start_timer = time.time()
+    o = Opacify(cache_dir=cache, debug=args.debug)
+    if args.func == 'pacify':
+        r = o.pacify(
+            input_file=args.input,
+            url_file=args.urls,
+            manifest=args.manifest,
+            overwrite=args.force,
+            keep_cache=args.keep
+        )
+        end_timer = time.time()
+        print('Wrote manifest to: %s' % (args.manifest))
+        print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
+        print('    Original size: %s' % (r[1]))
+        print('     Input sha256: %s' % (r[0]))
+        print('         Duration: %.3fs' % (end_timer - start_timer))
+    elif args.func == 'depacify':
+        r = o.depacify(manifest=args.manifest, out_file=args.out, keep_cache=args.keep, overwrite=args.force)
+        end_timer = time.time()
+        print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
+        print('    Output sha256: %s' % (r[0]))
+        print('      Output size: %s' % (r[1]))
+        print('         Duration: %.3fs' % (end_timer - start_timer))
+    else:
+        print('Not yet implemented: %s' % (args.func))
+    msgs = o.messages()
+    for m in msgs:
+        print('%s: %s' % (m[0], m[1]))

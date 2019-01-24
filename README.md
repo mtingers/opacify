@@ -6,14 +6,14 @@ Opacify reads a file and builds a manifest of external sources to rebuild said f
 
 ## Opacify A File
 ```
-$ opacify -o --input-file test.txt --external-sources sources.txt --manifest test.opacify
+$ opacify pacify --input test.txt --urls sources.txt --manifest test.opacify
 Running pacify on test.txt using sources.txt ...
 Status: 100% ... Complete!
 ```
 
 ## Depacify A File
 ```
-$ opacify -d --manifest test.opacify --save test-depacify.txt
+$ opacify depacify --manifest test.opacify --out test-depacify.txt
 Running depacify on test.opacify ...
 Status: 100% ... Complete!
 ```
@@ -22,7 +22,7 @@ Status: 100% ... Complete!
 As time goes by, external sources may disappear or content may change. The following will check that the source
 exists (has a valid HTTP response) and check that the source provides enough data of offset+length:
 ```
-$ opacify --verify-external-sources --manifest test.opacify
+$ opacify verify --manifest test.opacify
 Validating external sources listed in manifest ...
 Status: 100% ... Complete!
 ```
@@ -32,7 +32,7 @@ See [Error Codes](/ERRORS.md) for a list of errors and meanings.
 
 Fail to pacify:
 ```
-$ opacify --pacify --input-file test.txt --external-sources sources.txt --manifest test.opacify
+$ opacify pacify --input test.txt --urls sources.txt --manifest test.opacify
 Running pacify on test.txt using sources.txt ...
 Status: 54% ... ERROR:
     E1: Not enough external sources to complete manifest!
@@ -40,7 +40,7 @@ Status: 54% ... ERROR:
 
 Fail to depacify (external sources changed):
 ```
-$ opacify --depacify --manifest test.opacify -save test-depacify.txt
+$ opacify depacify --manifest test.opacify --out test-depacify.txt
 Running depacify on test.opacify ...
 Status: 23% ... ERROR:
     E2: Failed to extract source:
@@ -51,7 +51,7 @@ Status: 23% ... ERROR:
 
 Fail to depacify (external sources changed), but continue on:
 ```
-$ opacify --depacify --manifest test.opacify -save test-depacify.txt --continue
+$ opacify depacify --manifest test.opacify --out test-depacify.txt --continue
 Running depacify on test.opacify ...
 Status: 23% ...
 ERROR: External source http://foo/bar.jpg failed at offset 32, 40 bytes.
@@ -63,7 +63,7 @@ ERROR: External source http://foo/bar.jpg failed at offset 44, 20 bytes.
 
 Fail to validate sha256 or length on depacify:
 ```
-$ opacify --depacify --manifest test.opacify -save test-depacify.txt
+$ opacify depacify --manifest test.opacify --out test-depacify.txt
 Running depacify on test.opacify ...
 Status: 44% ...ERROR:
     E4: SHA256 does not match manifest! The data is likely invalid!
@@ -71,7 +71,7 @@ Status: 44% ...ERROR:
          test-depacify.txt
 ```
 ```
-$ opacify --depacify --manifest test.opacify -save test-depacify.txt
+$ opacify depacify --manifest test.opacify --out test-depacify.txt
 Running depacify on test.opacify ...
 Status: 12% ... ERROR:
     E5: Length does not match manifest! The data is likely invalid!
@@ -83,7 +83,7 @@ Status: 12% ... ERROR:
 
 Fail to validate manifest:
 ```
-$ opacify --verify-external-sources --manifest test.opacify
+$ opacify verify --manifest test.opacify
 Validating external sources listed in manifest ...
 Status: 55% ... ERROR:
     E6: Source http://foo.bar.jpg returned an invalid response!
@@ -141,7 +141,7 @@ from common locations (e.g. imgur, giphy, reddit, etc). Depending on the input f
 take an extremely long time.
 
 ```
-$ opacify -o --input-file test.txt --external-sources-auto --manifest test.opacify --verbose
+$ opacify -o --input test.txt --urls-auto --manifest test.opacify --verbose
 Running pacify on test.txt and finding external sources ...
 Status: Found source http://foo.com/hello.txt for offset 0, using 32 bytes
 Status: Found source http://foo.com/foo.gif for offset 32, using 12 bytes
