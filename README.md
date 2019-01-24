@@ -6,7 +6,7 @@ Opacify reads a file and builds a manifest of external sources to rebuild said f
 ```
 usage: opacify.py [-h] [-V] {pacify,depacify,verify} ...
 
-Opacify : v0.1.1
+Opacify : v0.1.2
 Project : http://github.com/mtingers/opacify
 Author  : Matth Ingersoll <matth@mtingers.com>
 Commit  : 754ed2be468c3b626d827c0cbfec3d3bcdc30dd0
