@@ -4,6 +4,11 @@ Opacify reads a file and builds a manifest of external URLs to rebuild said file
 
 [![asciicast](https://asciinema.org/a/AubzHtwn5qSRTFuFL1lV72w5h.png)](https://asciinema.org/a/AubzHtwn5qSRTFuFL1lV72w5h)
 
+# Install
+```
+pip install opacify
+```
+
 # Must Knows
 
 1. Opacify is slow (and probably always will be)!
