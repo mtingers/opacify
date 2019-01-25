@@ -260,7 +260,7 @@ class Opacify(object):
                 cur_offset += buf_len
                 assert buf_len != 0, 'buffer length is 0'
                 self.print_debug('buf_len=%d url_offset=%d foff=%d url=%s' % (buf_len, url_offset, offset, url))
-                man_f.write(bytes('%s %s %s\n' % (url, url_offset, buf_len), 'utf-8'))
+                man_f.write(str('%s %s %s\n' % (url, url_offset, buf_len)).encode('utf-8'))
                 buf = buf[buf_len:]
                 prev_buf_len = len(buf)
                 if show_progress:
@@ -279,7 +279,7 @@ class Opacify(object):
         sha = input_hash.hexdigest()
         self.digest = sha
         self.clength = offset
-        man_header = bytes('_header:%s:%s:%d\n' % (self.__version, sha, offset), 'utf-8')
+        man_header = str('_header:%s:%s:%d\n' % (self.__version, sha, offset)).encode('utf-8')
         man_f.write(man_header)
         inf_f.close()
         man_f.close()
@@ -367,7 +367,7 @@ class Opacify(object):
                     self.total_chunk_size += int(buf_len)
                     self.total_chunks += 1
                     total_len += int(buf_len)
-                    combined_manifest.write(bytes('%s %s %s\n' % (url, url_offset, buf_len), 'utf-8'))
+                    combined_manifest.write(str('%s %s %s\n' % (url, url_offset, buf_len)).encode('utf-8'))
             os.unlink(t_manifest)
         if errors > 0:
             return self.result(StatusCodes.E_MANIFEST, 'Failed to combine all manifests.')
@@ -386,7 +386,7 @@ class Opacify(object):
         sha = input_hash.hexdigest()
         self.digest = sha
         self.clength = total_len
-        man_header = bytes('_header:%s:%s:%d\n' % (self.__version, sha, total_len), 'utf-8')
+        man_header = str('_header:%s:%s:%d\n' % (self.__version, sha, total_len)).encode('utf-8')
         inf_f.close()
         combined_manifest.write(man_header)
         combined_manifest.close()
