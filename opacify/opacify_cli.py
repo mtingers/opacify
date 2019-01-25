@@ -4,10 +4,12 @@ import time
 import argparse
 from opacify import Opacify, StatusCodes
 from opacify import INFOTXT, EPILOG
-if __package__ is None or __package__ == '':
-    from opacify import reddit
-else:
+
+#if __package__ is None or __package__ == '':
+if sys.version_info[0] < 3:
     import reddit
+else:
+    from opacify import reddit
 
 def version():
     return INFOTXT
