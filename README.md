@@ -84,7 +84,7 @@ Status: 100% ... Complete!
 ```
 usage: opacify [-h] [-V] {pacify,satisfy,verify,reddit} ...
 
-Opacify : vx.x.x
+Opacify : v0.3.0
 Project : http://github.com/mtingers/opacify
 Author  : Matth Ingersoll <matth@mtingers.com>
 
@@ -106,7 +106,7 @@ Examples:
 
 ```
 usage: opacify pacify [-h] -i INPUT -u URLS -m MANIFEST -c CACHE [-k] [-f]
-                      [-d] [-t THREADS]
+                      [-d] [-t THREADS] [-s CHUNKSIZE]
 
 Run in pacify mode (builds manifest from input file)
 
@@ -125,6 +125,8 @@ optional arguments:
   -d, --debug           Turn on debug output
   -t THREADS, --threads THREADS
                         Run processing multiple threads
+  -s CHUNKSIZE, --chunksize CHUNKSIZE
+                        Specify a different chunk size (default is 1 byte)
 ```
 
 ```
