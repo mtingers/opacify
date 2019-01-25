@@ -1,12 +1,84 @@
 # Opacify
 
-Opacify reads a file and builds a manifest of external sources to rebuild said file.
+Opacify reads a file and builds a manifest of external URLs to rebuild said file.
+
+[![asciicast](https://asciinema.org/a/AubzHtwn5qSRTFuFL1lV72w5h.png)](https://asciinema.org/a/AubzHtwn5qSRTFuFL1lV72w5h)
+
+# Must Knows
+
+1. Opacify is slow (and probably always will be)!
+2. A cache is built locally to speedup both pacify and satisfy. It is removed on completed unless you specify ```--keep```.
+3. *The cache is built from downloading the data from the urls list.* TODO: Add cache limit flag.
+4. It probably could be used for illegal purposes. Please do not do this.
+5. ```--threads N``` option will help speedup the pacify command.
+
+# Why
+
+Why not? Some reasons:
+
+1. For fun
+2. Storing a backup in a terrible manner
+3. Hiding or obfuscating data
+4. Avoid censorship
+
+
+# Examples
+
+Please note that the example output may not be accurate at this time as it is a work
+in progress.
+
+## Pacify A File
+```
+$ opacify pacify --input test.txt --manifest test.manifest --cache cache/ --urls urls.txt --keep --threads 4 --force
+Progress: |████████████████████████████████████████████████████| * 100.0% thread-2 0.00m remaining    
+
+Wrote manifest to: test.manifest
+   Avg chunk size: 3.40
+     Total chunks: 2107
+    Manifest size: 164291
+    Original size: 7173
+     Input sha256: 44060449ed92a19e59231d48ab634cbe89d7328f1c24ac7b48b4992b1256657f
+         Duration: 7.170s
+```
+
+## Satisfy A File
+```
+$ opacify satisfy --out test.txt.out --manifest test.manifest --cache dcache/ --force
+Progress: |████████████████████████████████████████████████████| . 100.0%  0.00m remaining     
+
+    Manifest size: 164291
+    Output sha256: 44060449ed92a19e59231d48ab634cbe89d7328f1c24ac7b48b4992b1256657f
+      Output size: 7173
+         Duration: 15.079s
+$ shasum test.txt.out test.txt
+85c7bd6f40ba36326f9acd695779db7847434db4  test.txt.out
+85c7bd6f40ba36326f9acd695779db7847434db4  test.txt
+```
+
+## Build Url List from Reddit
+```
+$ opacify reddit --out reddit-urls.txt --count 20
+Generating urls from reddit data...
+Wrote urls data to: reddit-urls.txt
+
+$ wc -l reddit-urls.txt 
+      20 reddit-urls.txt
+```
+
+## Validate Manifest
+As time goes by, external sources may disappear or content may change. The following will check that the source
+exists (has a valid HTTP response) and check that the source provides enough data of offset+length:
+```
+$ opacify verify --manifest test.opacify
+Validating external sources listed in manifest ...
+Status: 100% ... Complete!
+```
 
 # Usage
 ```
 usage: opacify [-h] [-V] {pacify,satisfy,verify,reddit} ...
 
-Opacify : v0.2.2
+Opacify : v0.2.3
 Project : http://github.com/mtingers/opacify
 Author  : Matth Ingersoll <matth@mtingers.com>
 
@@ -91,96 +163,8 @@ optional arguments:
                         How many links to get
 ```
 
-# Examples
-
-Please note that the example output may not be accurate at this time as it is a work
-in progress.
-
-## Opacify A File
-```
-$ opacify pacify --input test.txt --urls sources.txt --manifest test.opacify
-Running pacify on test.txt using sources.txt ...
-Status: 100% ... Complete!
-```
-
-## Satisfy A File
-```
-$ opacify satisfy --manifest test.opacify --out test-satisfy.txt
-Running satisfy on test.opacify ...
-Status: 100% ... Complete!
-```
-
-## Validate Manifest
-As time goes by, external sources may disappear or content may change. The following will check that the source
-exists (has a valid HTTP response) and check that the source provides enough data of offset+length:
-```
-$ opacify verify --manifest test.opacify
-Validating external sources listed in manifest ...
-Status: 100% ... Complete!
-```
-
-## Errors
+# Errors
 See [Error Codes](/ERRORS.md) for a list of errors and meanings.
-
-Fail to pacify:
-```
-$ opacify pacify --input test.txt --urls sources.txt --manifest test.opacify
-Running pacify on test.txt using sources.txt ...
-Status: 54% ... ERROR:
-    E1: Not enough external sources to complete manifest!
-```
-
-Fail to satisfy (external sources changed):
-```
-$ opacify satisfy --manifest test.opacify --out test-satisfy.txt
-Running satisfy on test.opacify ...
-Status: 23% ... ERROR:
-    E2: Failed to extract source:
-        http://foo/bar.jpg
-    Partial contents are located at:
-         test-satisfy.txt
-```
-
-Fail to satisfy (external sources changed), but continue on:
-```
-$ opacify satisfy --manifest test.opacify --out test-satisfy.txt --continue
-Running satisfy on test.opacify ...
-Status: 23% ...
-ERROR: External source http://foo/bar.jpg failed at offset 32, 40 bytes.
-ERROR: External source http://foo/bar.jpg failed at offset 44, 20 bytes.
-    E3: We tried our best but not all external sources were good.
-    Partial contents are located at:
-         test-satisfy.txt
-```
-
-Fail to validate sha256 or length on satisfy:
-```
-$ opacify satisfy --manifest test.opacify --out test-satisfy.txt
-Running satisfy on test.opacify ...
-Status: 44% ...ERROR:
-    E4: SHA256 does not match manifest! The data is likely invalid!
-    Output file was still saved to:
-         test-satisfy.txt
-```
-```
-$ opacify satisfy --manifest test.opacify --out test-satisfy.txt
-Running satisfy on test.opacify ...
-Status: 12% ... ERROR:
-    E5: Length does not match manifest! The data is likely invalid!
-        This should not happen, there may be a bug in Opacify
-        OR a problem with your system!
-    Output file was still saved to:
-         test-satisfy.txt
-```
-
-Fail to validate manifest:
-```
-$ opacify verify --manifest test.opacify
-Validating external sources listed in manifest ...
-Status: 55% ... ERROR:
-    E6: Source http://foo.bar.jpg returned an invalid response!
-        You cannot fully rebuild from the manifest!
-```
 
 # Manifest Format
 
@@ -217,10 +201,6 @@ This example describes the following process to rebuild the input file from the 
 
 
 # TODO
-
-## Threading
-
-Make a --threads option to speed up operations when interacting with external sources.
 
 ## Backup
 

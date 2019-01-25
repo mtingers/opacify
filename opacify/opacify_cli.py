@@ -69,6 +69,7 @@ def main():
     debug = getattr(args, 'debug', False)
     n_threads = getattr(args, 'threads', None)
     o = Opacify(cache_dir=cache, debug=debug)
+    r = None
     if args.func == 'pacify':
         r = o.pacify(
             input_file=args.input,
@@ -93,7 +94,7 @@ def main():
             #print('    Original size: %s' % (r[1]))
             #print('     Input sha256: %s' % (r[0]))
             print('    Original size: %s' % (o.clength))
-            print('     Input sha256: %s' % (o.digest))
+            print('           sha256: %s' % (o.digest))
             print('         Duration: %.3fs' % (end_timer - start_timer))
     elif args.func == 'satisfy':
         r = o.satisfy(manifest=args.manifest, out_file=args.out, keep_cache=args.keep, overwrite=args.force)
@@ -105,7 +106,7 @@ def main():
         else:
             end_timer = time.time()
             print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
-            print('    Output sha256: %s' % (o.digest))
+            print('           sha256: %s' % (o.digest))
             print('      Output size: %s' % (o.clength))
             print('         Duration: %.3fs' % (end_timer - start_timer))
     elif args.func == 'reddit':

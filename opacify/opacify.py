@@ -157,6 +157,14 @@ class Opacify(object):
         # Fallthrough that should not be reached. If it is, there is an error in the logic
         return self.result(StatusCodes.E_FAILED, 'Programmer error in _find_buf')
 
+    def build_cache(self, urls):
+        sys.stdout.write('Building cache...\r')
+        sys.stdout.flush()
+        for url in urls:
+            if url in self._failed_urls_cache:
+                continue
+            self._write_url_to_cache(url)
+
     def _pacify(self, input_file=None, url_file=None, manifest=None, overwrite=False, keep_cache=False,
             input_offset=None, input_end=None, show_progress=False, thread_id=None, thread_info=None):
         input_hash = hashlib.sha256()
@@ -187,9 +195,9 @@ class Opacify(object):
         if show_progress:
             if thread_id is not None:
                 progress_bar(0, input_size, prefix='Progress:', suffix='thread-%s' % (thread_id),
-                    length=52, timer_start=self.timer_start)
+                    length=24, timer_start=self.timer_start)
             else:
-                progress_bar(0, input_size, prefix='Progress:', suffix='', length=52,
+                progress_bar(0, input_size, prefix='Progress:', suffix='', length=24,
                     timer_start=self.timer_start)
         while offset < input_size:
             if input_size - offset < CHUNK_SIZE:
@@ -209,7 +217,8 @@ class Opacify(object):
                     # Instead messages are pushed into results and results
                     # added to Manger() dict
                     r = self.result(StatusCodes.E_URL_NOT_FOUND, 'Could not find url for buf at offset: %d' % (offset))
-                    thread_info['result'] = self.results
+                    if thread_info is not None:
+                        thread_info['result'] = self.results
                     return r
 
                 (buf_len, url_offset, url) = fbu
@@ -223,16 +232,16 @@ class Opacify(object):
                 prev_buf_len = len(buf)
                 if show_progress:
                     if thread_id is None:
-                        progress_bar(cur_offset, input_size, prefix='Progress:', suffix='', length=52,
+                        progress_bar(cur_offset, input_size, prefix='Progress:', suffix='', length=24,
                             timer_start=self.timer_start)
 
             offset += start_buf_len
             if not self.debug and show_progress:
                 if thread_id is not None:
                     progress_bar(offset, input_size, prefix='Progress:', suffix='thread-%s' % (thread_id),
-                        length=52, timer_start=self.timer_start)
+                        length=24, timer_start=self.timer_start)
                 else:
-                    progress_bar(offset, input_size, prefix='Progress:', suffix='', length=52,
+                    progress_bar(offset, input_size, prefix='Progress:', suffix='', length=24,
                         timer_start=self.timer_start)
         sha = input_hash.hexdigest()
         self.digest = sha
@@ -241,8 +250,6 @@ class Opacify(object):
         man_f.write(man_header)
         inf_f.close()
         man_f.close()
-        if not keep_cache:
-            self.clean_cache()
         if thread_id is not None and thread_id is not False and thread_info:
             thread_info['result'] = self.results
             #thread_info['msgs'] = self.messages()
@@ -250,6 +257,7 @@ class Opacify(object):
 
     def pacify(self, input_file=None, url_file=None, manifest=None, overwrite=False, keep_cache=False, threads=None):
         self.timer_start = time.time()
+        self.build_cache(open(url_file).read().strip().split('\n'))
         if threads is None:
             return self._pacify(input_file=input_file, url_file=url_file, manifest=manifest,
                 overwrite=overwrite, keep_cache=keep_cache, show_progress=True)
@@ -266,7 +274,7 @@ class Opacify(object):
         per_thread = int(input_size / n_threads)
         # {} Allows multiprocess communication back to parent
         manager = Manager()
-        thread_info = manager.dict()
+        thread_info = {} #manager.dict()
         offset = 0
         for i in range(n_threads):
             offset += per_thread
@@ -347,6 +355,8 @@ class Opacify(object):
         inf_f.close()
         combined_manifest.write(man_header)
         combined_manifest.close()
+        if not keep_cache:
+            self.clean_cache()
         return self.result(StatusCodes.OK, 'OK')
 
     def _cache_path(self, url):
@@ -419,7 +429,7 @@ class Opacify(object):
                 self.print_debug('url=%s offset=%d len=%d' % (url, url_offset, buf_len))
                 progress_offset += buf_len
                 if show_progress:
-                    progress_bar(progress_offset, length, prefix='Progress:', suffix='', length=52,
+                    progress_bar(progress_offset, length, prefix='Progress:', suffix='', length=24,
                         timer_start=timer_start)
                 buf = b''
                 cache_path = self._cache_path(url)
