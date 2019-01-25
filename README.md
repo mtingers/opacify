@@ -35,7 +35,7 @@ in progress.
 ## Pacify A File
 ```
 $ opacify pacify --input test.txt --manifest test.manifest --cache cache/ --urls urls.txt --keep --threads 4 --force
-Progress: |████████████████████████████████████████████████████| * 100.0% thread-2 0.00m remaining    
+Progress: |████████████████████████████████████████████████████| * 100.0% thread-2 0.00m remaining
 
 Wrote manifest to: test.manifest
    Avg chunk size: 3.40
@@ -49,7 +49,7 @@ Wrote manifest to: test.manifest
 ## Satisfy A File
 ```
 $ opacify satisfy --out test.txt.out --manifest test.manifest --cache dcache/ --force
-Progress: |████████████████████████████████████████████████████| . 100.0%  0.00m remaining     
+Progress: |████████████████████████████████████████████████████| . 100.0%  0.00m remaining
 
     Manifest size: 164291
     Output sha256: 44060449ed92a19e59231d48ab634cbe89d7328f1c24ac7b48b4992b1256657f
@@ -61,12 +61,13 @@ $ shasum test.txt.out test.txt
 ```
 
 ## Build Url List from Reddit
+Please note that Reddit data is volatile and often disappears.
 ```
 $ opacify reddit --out reddit-urls.txt --count 20
 Generating urls from reddit data...
 Wrote urls data to: reddit-urls.txt
 
-$ wc -l reddit-urls.txt 
+$ wc -l reddit-urls.txt
       20 reddit-urls.txt
 ```
 

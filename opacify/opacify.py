@@ -3,13 +3,12 @@ import sys
 import time
 import hashlib
 import socket
-socket.setdefaulttimeout(10)
 import requests
-socket.setdefaulttimeout(10)
 import threading
 from enum import Enum
 from multiprocessing import Process, Manager
 from pprint import pprint
+import gzip
 
 from .opacifyinfo import *
 from .progress import progress_bar
@@ -25,7 +24,35 @@ Project : %s
 Author  : %s
 """ % (VERSION, PROJECT, AUTHOR)
 
-CHUNK_SIZE = 24
+#
+# IMPORTANT: CHUNK_SIZE
+# Apparently, find() is very slow. Default chunk size of 1 byte is orders
+# of magnitude faster than iterating multiple find()s at larger sizes.
+# There is now a new option -s/--chunksize to override the default.
+# Since the manifest is now compressed, most duplicate URL entries will
+# still result in a small manifest even the CHUNK_SIZE=1 will cause many
+# many more entries.
+# Example of the issue:
+#
+#    $ opacify pacify -i zsh -m test.manifest -c cache -u urls.txt -f -t 6  -s 1 -k
+#         Total chunks: 610224
+#        Manifest size: 901676
+#             Duration: 20.457s
+#
+#    $ opacify pacify -i zsh -m test.manifest -c cache -u urls.txt -f -t 6  -s 2 -k
+#         Total chunks: 305112
+#        Manifest size: 855333
+#             Duration: 34.285s
+#
+#    $ opacify pacify -i zsh -m test.manifest -c cache -u urls.txt -f -t 6  -s 4 -k
+#         Total chunks: 287376
+#        Manifest size: 889166
+#             Duration: 461.811s
+#
+# Note above that the manifest size is very close, but the duration is completely
+# different.
+#
+CHUNK_SIZE = 1
 
 class StatusCodes(Enum):
     OK                  = True
@@ -74,7 +101,7 @@ class Results(object):
         return self.results
 
 class Opacify(object):
-    def __init__(self, cache_dir=None, debug=False):
+    def __init__(self, cache_dir=None, debug=False, chunk_size=None):
         self.total_chunks = 0
         self.total_chunk_size = 0
         self.__version = VERSION
@@ -87,6 +114,9 @@ class Opacify(object):
         self.results = Results()
         self.digest = None
         self.clength = 0
+        self.chunk_size = CHUNK_SIZE
+        if chunk_size:
+            self.chunk_size = int(chunk_size)
 
     def messages(self):
         return self._messages
@@ -133,7 +163,7 @@ class Opacify(object):
                 cache_f = open(cache_path, 'rb')
                 total_chunk_size = 0
                 while True:
-                    chunk = cache_f.read(CHUNK_SIZE*1024)
+                    chunk = cache_f.read(self.chunk_size*1024)
                     if not chunk:
                         break
                     offset = chunk.find(buf)
@@ -142,6 +172,7 @@ class Opacify(object):
                         return (len(buf), total_chunk_size+offset, url)
                     total_chunk_size += len(chunk)
             lb = len(buf)
+            #buf = buf[:-1]
             if lb > 8:
                 buf = buf[:-8]
             elif lb > 4:
@@ -160,6 +191,8 @@ class Opacify(object):
     def build_cache(self, urls):
         sys.stdout.write('Building cache...\r')
         sys.stdout.flush()
+        if not os.path.exists(self.cache_dir):
+            os.mkdir(self.cache_dir)
         for url in urls:
             if url in self._failed_urls_cache:
                 continue
@@ -190,7 +223,7 @@ class Opacify(object):
             input_size = os.path.getsize(input_file)
             offset = 0
 
-        man_f = open(manifest, 'w')
+        man_f = gzip.open(manifest, 'wb')
         urls = open(url_file).read().strip().split('\n')
         if show_progress:
             if thread_id is not None:
@@ -200,10 +233,10 @@ class Opacify(object):
                 progress_bar(0, input_size, prefix='Progress:', suffix='', length=24,
                     timer_start=self.timer_start)
         while offset < input_size:
-            if input_size - offset < CHUNK_SIZE:
+            if input_size - offset < self.chunk_size:
                 buf = inf_f.read(input_size - offset)
             else:
-                buf = inf_f.read(CHUNK_SIZE)
+                buf = inf_f.read(self.chunk_size)
             if not buf:
                 break
             input_hash.update(buf)
@@ -227,7 +260,7 @@ class Opacify(object):
                 cur_offset += buf_len
                 assert buf_len != 0, 'buffer length is 0'
                 self.print_debug('buf_len=%d url_offset=%d foff=%d url=%s' % (buf_len, url_offset, offset, url))
-                man_f.write('%s %s %s\n' % (url, url_offset, buf_len))
+                man_f.write(bytes('%s %s %s\n' % (url, url_offset, buf_len), 'utf-8'))
                 buf = buf[buf_len:]
                 prev_buf_len = len(buf)
                 if show_progress:
@@ -246,7 +279,7 @@ class Opacify(object):
         sha = input_hash.hexdigest()
         self.digest = sha
         self.clength = offset
-        man_header = '_header:%s:%s:%d\n' % (self.__version, sha, offset)
+        man_header = bytes('_header:%s:%s:%d\n' % (self.__version, sha, offset), 'utf-8')
         man_f.write(man_header)
         inf_f.close()
         man_f.close()
@@ -314,25 +347,27 @@ class Opacify(object):
                     for j in range(len(x.codes)):
                         self.result(x.codes[j], x.messages[j])
 
-        combined_manifest = open(manifest, 'w') # TODO: check if --force
+        combined_manifest = gzip.open(manifest, 'wb') # TODO: check if --force
         total_len = 0
         errors = 0
         for i in range(n_threads):
             t_manifest = '%s-%s-%s.tmp' % (manifest, thread_info[i]['offset'], thread_info[i]['end'])
             try:
                 (version, sha, length) = self.get_manifest_header(t_manifest)
-            except:
+            except Exception as e:
+                self.print_debug('%s' % (e))
                 self.result(StatusCodes.E_MANIFEST, 'Invalid manifest from thread: %s' % (t_manifest))
                 errors += 1
                 continue
-            with open(t_manifest, 'r') as m_f:
+            with gzip.open(t_manifest, 'rb') as m_f:
                 for line in m_f:
+                    line = line.decode()
                     if line.startswith('_header:'): break
                     (url, url_offset, buf_len) = line.strip().split(' ')
                     self.total_chunk_size += int(buf_len)
                     self.total_chunks += 1
                     total_len += int(buf_len)
-                    combined_manifest.write('%s %s %s\n' % (url, url_offset, buf_len))
+                    combined_manifest.write(bytes('%s %s %s\n' % (url, url_offset, buf_len), 'utf-8'))
             os.unlink(t_manifest)
         if errors > 0:
             return self.result(StatusCodes.E_MANIFEST, 'Failed to combine all manifests.')
@@ -340,10 +375,10 @@ class Opacify(object):
         offset = 0
         with open(input_file, 'rb') as inf_f:
             while True:
-                if total_len - offset < CHUNK_SIZE:
+                if total_len - offset < self.chunk_size:
                     buf = inf_f.read(total_len - offset)
                 else:
-                    buf = inf_f.read(CHUNK_SIZE)
+                    buf = inf_f.read(self.chunk_size)
                 if not buf:
                     break
                 offset += len(buf)
@@ -351,7 +386,7 @@ class Opacify(object):
         sha = input_hash.hexdigest()
         self.digest = sha
         self.clength = total_len
-        man_header = '_header:%s:%s:%d\n' % (self.__version, sha, total_len)
+        man_header = bytes('_header:%s:%s:%d\n' % (self.__version, sha, total_len), 'utf-8')
         inf_f.close()
         combined_manifest.write(man_header)
         combined_manifest.close()
@@ -372,10 +407,12 @@ class Opacify(object):
         if start_offset < 0:
             start_offset = 0
         self.print_debug('get_manifest_header: start_offest=%d' % (start_offset))
-        with open(manifest_path, 'r') as f:
+        with gzip.open(manifest_path, 'rb') as f:
             f.seek(start_offset, os.SEEK_SET)
             for last_line in f:
                 pass
+        last_line = last_line.decode()
+        z = last_line.split(':')
         (_, version, sha, length) = last_line.split(':')
         return (version, sha, int(length))
 
@@ -394,7 +431,7 @@ class Opacify(object):
         length = int(length)
         with open(path, 'rb') as f:
             while True:
-                chunk = f.read(CHUNK_SIZE)
+                chunk = f.read(self.chunk_size)
                 if not chunk:
                     break
                 h.update(chunk)
@@ -420,8 +457,9 @@ class Opacify(object):
         self.print_debug('Manifest: %s %s %s' % (version, sha, length))
         timer_start = time.time()
         progress_offset = 0
-        with open(manifest, 'r') as m_f:
+        with gzip.open(manifest, 'rb') as m_f:
             for line in m_f:
+                line = line.decode()
                 if line.startswith('_header:'): break
                 (url, url_offset, buf_len) = line.strip().split(' ')
                 url_offset = int(url_offset)
@@ -448,7 +486,7 @@ class Opacify(object):
                 buf = b''
                 cache_f = open(cache_path, 'rb')
                 while True:
-                    tmp = cache_f.read(CHUNK_SIZE*1000)
+                    tmp = cache_f.read(self.chunk_size*1000)
                     if not tmp :break
                     buf += tmp
                     if len(buf) > buf_len + url_offset:

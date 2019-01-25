@@ -53,6 +53,7 @@ def main():
     group1.add_argument('-f', '--force', action='store_const', const=True, help='Overwrite manifest if it exists')
     group1.add_argument('-d', '--debug', action='store_const', const=True, help='Turn on debug output')
     group1.add_argument('-t', '--threads', help='Run processing multiple threads')
+    group1.add_argument('-s', '--chunksize', help='Specify a different chunk size (default is 1 byte)')
     # Satisfy
     group2.add_argument('-m', '--manifest', required=True, help='Path of manifest file')
     group2.add_argument('-o', '--out', required=True, help='Path to write output file to')
@@ -76,6 +77,8 @@ def main():
     o = Opacify(cache_dir=cache, debug=debug)
     r = None
     if args.func == 'pacify':
+        if args.chunksize:
+            o.chunk_size = int(args.chunksize)
         r = o.pacify(
             input_file=args.input,
             url_file=args.urls,
@@ -99,7 +102,7 @@ def main():
             #print('    Original size: %s' % (r[1]))
             #print('     Input sha256: %s' % (r[0]))
             print('    Original size: %s' % (o.clength))
-            print('           sha256: %s' % (o.digest))
+            print('           sha256: %s...' % (o.digest[:16]))
             print('         Duration: %.3fs' % (end_timer - start_timer))
     elif args.func == 'satisfy':
         r = o.satisfy(manifest=args.manifest, out_file=args.out, keep_cache=args.keep, overwrite=args.force)
@@ -111,8 +114,8 @@ def main():
         else:
             end_timer = time.time()
             print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
-            print('           sha256: %s' % (o.digest))
             print('      Output size: %s' % (o.clength))
+            print('           sha256: %s...' % (o.digest[:16]))
             print('         Duration: %.3fs' % (end_timer - start_timer))
     elif args.func == 'reddit':
         print('Generating urls from reddit data...')
