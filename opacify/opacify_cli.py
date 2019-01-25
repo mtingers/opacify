@@ -9,6 +9,15 @@ from opacify import reddit
 def version():
     return INFOTXT
 
+def dump_messages(o):
+    for status in o.results.get():
+        for i in range(len(status.codes)):
+            code = status.codes[i]
+            msg = status.messages[i]
+            if code == StatusCodes.OK: continue
+            print('%s: %s' % (code.name, msg))
+
+
 #if __name__ == '__main__':
 def main():
     parser = argparse.ArgumentParser(
@@ -75,12 +84,7 @@ def main():
         #if type(r) != tuple:
         if r != StatusCodes.OK:
             print('ERROR: Failed to pacify:')
-            for status in o.results.get():
-                for i in range(len(status.codes)):
-                    code = status.codes[i]
-                    msg = status.messages[i]
-                    if code == StatusCodes.OK: continue
-                    print('%s: %s' % (code.name, msg))
+            dump_messages(o)
         else:
             print('Wrote manifest to: %s' % (args.manifest))
             print('   Avg chunk size: %.2f' % (avg_chunk_size))
@@ -97,12 +101,7 @@ def main():
         #if type(r) != tuple:
         if r != StatusCodes.OK:
             print('ERROR: Failed to satisfy:')
-            for status in o.results.get():
-                for i in range(len(status.codes)):
-                    code = status.codes[i]
-                    msg = status.messages[i]
-                    if code == StatusCodes.OK: continue
-                    print('%s: %s' % (code.name, msg))
+            dump_messages(o)
         else:
             end_timer = time.time()
             print('    Manifest size: %s' % (os.path.getsize(args.manifest)))
@@ -128,10 +127,5 @@ def main():
                 print("")
                 print('NOTICE: Not yet implemented: %s' % (args.func))
                 print("")
-    if r == StatusCodes.OK:
-        for status in o.results.get():
-            for i in range(len(status.codes)):
-                code = status.codes[i]
-                msg = status.messages[i]
-                if code == StatusCodes.OK: continue
-                print('%s: %s' % (code.name, msg))
+    if r == StatusCodes.OK and args.debug:
+        dump_messages(o)

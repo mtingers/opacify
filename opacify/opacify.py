@@ -164,7 +164,10 @@ class Opacify(object):
             raise Exception('Programmer error: pacify() requires input_file, url_file, manifest')
 
         if os.path.exists(manifest) and not overwrite:
-            return self.result(StatusCodes.E_MANIFEST_EXISTS, 'Manifest file exists. Use --force to overwrite')
+            r = self.result(StatusCodes.E_MANIFEST_EXISTS, 'Manifest file exists. Use --force to overwrite')
+            if thread_id is not None and thread_id is not False and thread_info:
+                thread_info['result'] = self.results
+            return r
 
         if input_offset is not None and input_end is not None:
             manifest += '-%s-%s.tmp' % (input_offset, input_end)
@@ -232,6 +235,8 @@ class Opacify(object):
                     progress_bar(offset, input_size, prefix='Progress:', suffix='', length=52,
                         timer_start=self.timer_start)
         sha = input_hash.hexdigest()
+        self.digest = sha
+        self.clength = offset
         man_header = '_header:%s:%s:%d\n' % (self.__version, sha, offset)
         man_f.write(man_header)
         inf_f.close()
@@ -296,9 +301,10 @@ class Opacify(object):
 
         for i in range(n_threads):
             status = thread_info[i]
-            for x in status['result'].get():
-                for j in range(len(x.codes)):
-                    self.result(x.codes[j], x.messages[j])
+            if status['result']:
+                for x in status['result'].get():
+                    for j in range(len(x.codes)):
+                        self.result(x.codes[j], x.messages[j])
 
         combined_manifest = open(manifest, 'w') # TODO: check if --force
         total_len = 0
