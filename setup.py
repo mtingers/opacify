@@ -3,7 +3,7 @@ import setuptools
 
 setup(
     name='Opacify',
-    version='0.2.3',
+    version='0.2.4',
     author='Matth Ingersoll',
     author_email='matth@mtingers.com',
     packages=['opacify',],

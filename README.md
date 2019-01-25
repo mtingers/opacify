@@ -78,7 +78,7 @@ Status: 100% ... Complete!
 ```
 usage: opacify [-h] [-V] {pacify,satisfy,verify,reddit} ...
 
-Opacify : v0.2.3
+Opacify : vx.x.x
 Project : http://github.com/mtingers/opacify
 Author  : Matth Ingersoll <matth@mtingers.com>
 
