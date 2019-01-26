@@ -3,7 +3,7 @@ import setuptools
 
 setup(
     name='Opacify',
-    version='0.3.0',
+    version='0.3.2',
     author='Matth Ingersoll',
     author_email='matth@mtingers.com',
     packages=['opacify',],
@@ -12,6 +12,7 @@ setup(
     url='https://github.com/mtingers/opacify',
     install_requires=[
         "requests",
+        "enum34",
     ],
     #scripts=['bin/opacify',],
     entry_points={
