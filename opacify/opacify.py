@@ -448,6 +448,8 @@ class Opacify(object):
         return self.result(StatusCodes.OK, 'OK')
 
     def satisfy(self, manifest=None, out_file=None, keep_cache=False, overwrite=False, show_progress=True):
+        if not os.path.exists(self.cache_dir):
+            os.mkdir(self.cache_dir)
         if os.path.exists(out_file) and not overwrite:
             return self.result(StatusCodes.E_OUTFILE_EXISTS, 'Output file exists. Use --force option to overwrite.')
 
