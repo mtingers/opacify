@@ -14,18 +14,7 @@ pip install opacify
 1. Opacify is slow (and probably always will be)!
 2. A cache is built locally to speedup both pacify and satisfy. It is removed on completed unless you specify ```--keep```.
 3. *The cache is built from downloading the data from the urls list.* TODO: Add cache limit flag.
-4. It probably could be used for illegal purposes. Please do not do this.
-5. ```--threads N``` option will help speedup the pacify command.
-
-# Why
-
-Why not? Some reasons:
-
-1. For fun
-2. Storing a backup in a terrible manner
-3. Hiding or obfuscating data
-4. Avoid censorship
-
+4. ```--threads N``` option will help speedup the pacify command.
 
 # Examples
 
